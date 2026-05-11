@@ -6,6 +6,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
+    position: relative;
     background: #1a0f2e;
     color: #fff;
     font-family: 'Courier New', monospace;
@@ -17,9 +18,24 @@
     overflow: hidden;
     image-rendering: pixelated;
   }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url('BACKGROUND/START SCREEN.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body.start-screen-bg::before { opacity: 0.22; }
+  body > * { position: relative; z-index: 1; }
   #game {
     border: 4px solid #6a4caf;
-    background: #000;
+    background: transparent;
     image-rendering: pixelated;
     box-shadow: 0 0 30px rgba(150, 100, 255, 0.5);
   }
@@ -75,6 +91,13 @@ for (const [key, path] of Object.entries(SPRITE_FILES)) {
   SPRITES[who][dir] = img;
 }
 function spritesReady() { return spritesLoaded >= SPRITE_TOTAL; }
+
+// Start screen background
+const START_SCREEN = new Image();
+let startScreenReady = false;
+START_SCREEN.onload = () => { startScreenReady = true; };
+START_SCREEN.onerror = () => { startScreenReady = false; };
+START_SCREEN.src = encodeURI('BACKGROUND/START SCREEN.png');
 
 const W = canvas.width, H = canvas.height;
 const TILE = 40;
@@ -401,8 +424,10 @@ function loadLevel(idx) {
     entities.enemies.push({x: 9*TILE, y: 8*TILE, dx: 0, dy: 1, type: 'bat', alive: true});
   }
 
+  const decorations = generateDecorations(map, entities, leoStart, miaStart, data.biome, idx);
+
   level = {
-    data, map, entities,
+    data, map, entities, decorations,
     leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0 },
     mia: { x: miaStart.x * TILE + 4, y: miaStart.y * TILE + 4, dir: 'down', moving: false, magicTimer: 0 },
     symbolOrder: [],
@@ -411,6 +436,35 @@ function loadLevel(idx) {
     won: false,
     hits: 0,
   };
+}
+
+function generateDecorations(map, entities, leoStart, miaStart, biome, idx) {
+  const occ = new Set();
+  const mark = (x,y) => occ.add(x+','+y);
+  mark(leoStart.x, leoStart.y); mark(miaStart.x, miaStart.y);
+  ['keys','crystals','switches','gates','spikes','blocks','hidden','dualPlates','symbolPlates','torches','orbs','weakWalls','doors'].forEach(k =>
+    entities[k].forEach(e => mark(e.x, e.y))
+  );
+  if (entities.exit) mark(entities.exit.x, entities.exit.y);
+
+  let seed = idx * 1731 + 9277;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed/233280; };
+
+  const decos = [];
+  for (let y = 0; y < map.length; y++) {
+    for (let x = 0; x < map[y].length; x++) {
+      if (map[y][x] !== T.FLOOR && map[y][x] !== T.DARK_FLOOR) continue;
+      if (occ.has(x+','+y)) continue;
+      // Only near walls to avoid blocking path visually
+      const nearWall = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) =>
+        map[y+dy] && (map[y+dy][x+dx] === T.WALL || map[y+dy][x+dx] === T.WEAK_WALL)
+      );
+      if (!nearWall) continue;
+      if (rnd() > 0.55) continue;
+      decos.push({ x, y, variant: Math.floor(rnd()*4), t: rnd() });
+    }
+  }
+  return decos;
 }
 
 // ============ COLLISIONS ============
@@ -863,6 +917,213 @@ function drawTile(t, px, py, biome, x, y) {
   }
 }
 
+function drawDecorations(biome) {
+  if (!level.decorations) return;
+  level.decorations.forEach(d => drawDeco(d, biome));
+}
+
+function drawDeco(d, biome) {
+  const px = d.x * TILE, py = d.y * TILE;
+  const v = d.variant;
+  if (biome === 'forest') {
+    if (v === 0) drawTree(px, py);
+    else if (v === 1) drawBush(px, py);
+    else if (v === 2) drawMushroom(px, py, '#cc3333', '#ffeecc');
+    else drawFlowers(px, py, d.t);
+  } else if (biome === 'cave') {
+    if (v === 0) drawStalagmite(px, py, false);
+    else if (v === 1) drawStalagmite(px, py, true);
+    else if (v === 2) drawRock(px, py);
+    else drawMushroom(px, py, '#8866cc', '#ddccff');
+  } else if (biome === 'temple') {
+    if (v === 0) drawColumn(px, py);
+    else if (v === 1) drawUrn(px, py);
+    else if (v === 2) drawVine(px, py);
+    else drawFlowers(px, py, d.t);
+  } else if (biome === 'dark') {
+    if (v === 0) drawGlowMushroom(px, py);
+    else if (v === 1) drawBones(px, py);
+    else if (v === 2) drawCobweb(px, py);
+    else drawGlowMushroom(px, py);
+  } else if (biome === 'castle') {
+    if (v === 0) drawBanner(px, py, '#882244');
+    else if (v === 1) drawBanner(px, py, '#225588');
+    else if (v === 2) drawUrn(px, py);
+    else drawColumn(px, py);
+  }
+}
+
+function drawTree(px, py) {
+  // trunk
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(px+TILE/2-3, py+TILE-14, 6, 12);
+  // foliage
+  ctx.fillStyle = '#1f4a1f';
+  ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE/2-2, 11, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#2d6a2d';
+  ctx.beginPath(); ctx.arc(px+TILE/2-3, py+TILE/2-4, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3a8a3a';
+  ctx.beginPath(); ctx.arc(px+TILE/2-4, py+TILE/2-6, 3, 0, Math.PI*2); ctx.fill();
+}
+
+function drawBush(px, py) {
+  ctx.fillStyle = '#2d5a2d';
+  ctx.beginPath(); ctx.arc(px+TILE/2-5, py+TILE-10, 7, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+TILE/2+4, py+TILE-9, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3a7a3a';
+  ctx.beginPath(); ctx.arc(px+TILE/2-3, py+TILE-13, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+TILE/2+5, py+TILE-12, 4, 0, Math.PI*2); ctx.fill();
+}
+
+function drawMushroom(px, py, capColor, dotColor) {
+  ctx.fillStyle = '#eedfbb';
+  ctx.fillRect(px+TILE/2-2, py+TILE-10, 4, 8);
+  ctx.fillStyle = capColor;
+  ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE-10, 6, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = dotColor;
+  ctx.beginPath(); ctx.arc(px+TILE/2-2, py+TILE-12, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+TILE/2+2, py+TILE-11, 1.2, 0, Math.PI*2); ctx.fill();
+}
+
+function drawFlowers(px, py, t) {
+  const colors = ['#ff66aa','#ffee44','#aa88ff','#ff8844'];
+  for (let i = 0; i < 3; i++) {
+    const fx = px+8 + i*9 + (t*4|0);
+    const fy = py+TILE-6 - ((i*7+t*9|0)%4);
+    ctx.fillStyle = colors[(i+(t*4|0))%colors.length];
+    ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#3a7a3a';
+    ctx.fillRect(fx, fy, 1, 3);
+  }
+}
+
+function drawStalagmite(px, py, fromCeiling) {
+  ctx.fillStyle = '#666677';
+  if (fromCeiling) {
+    ctx.beginPath();
+    ctx.moveTo(px+TILE/2-5, py);
+    ctx.lineTo(px+TILE/2+5, py);
+    ctx.lineTo(px+TILE/2, py+14);
+    ctx.fill();
+    ctx.fillStyle = '#8888aa';
+    ctx.beginPath();
+    ctx.moveTo(px+TILE/2-2, py);
+    ctx.lineTo(px+TILE/2+2, py);
+    ctx.lineTo(px+TILE/2, py+9);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(px+TILE/2-6, py+TILE-2);
+    ctx.lineTo(px+TILE/2+6, py+TILE-2);
+    ctx.lineTo(px+TILE/2, py+TILE-18);
+    ctx.fill();
+    ctx.fillStyle = '#8888aa';
+    ctx.beginPath();
+    ctx.moveTo(px+TILE/2-2, py+TILE-2);
+    ctx.lineTo(px+TILE/2+2, py+TILE-2);
+    ctx.lineTo(px+TILE/2, py+TILE-12);
+    ctx.fill();
+  }
+}
+
+function drawRock(px, py) {
+  ctx.fillStyle = '#555566';
+  ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE-8, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#777788';
+  ctx.beginPath(); ctx.arc(px+TILE/2-2, py+TILE-10, 3, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#333344';
+  ctx.fillRect(px+TILE/2-5, py+TILE-3, 10, 2);
+}
+
+function drawColumn(px, py) {
+  ctx.fillStyle = '#c9b88a';
+  ctx.fillRect(px+TILE/2-5, py+4, 10, TILE-8);
+  ctx.fillStyle = '#a8956a';
+  ctx.fillRect(px+TILE/2-5, py+4, 2, TILE-8);
+  ctx.fillStyle = '#dccfa0';
+  ctx.fillRect(px+TILE/2-7, py+2, 14, 4);
+  ctx.fillRect(px+TILE/2-7, py+TILE-6, 14, 4);
+}
+
+function drawUrn(px, py) {
+  ctx.fillStyle = '#8a5a2a';
+  ctx.beginPath(); ctx.ellipse(px+TILE/2, py+TILE-10, 7, 9, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(px+TILE/2-4, py+TILE-18, 8, 3);
+  ctx.fillStyle = '#aa7a4a';
+  ctx.fillRect(px+TILE/2-2, py+TILE-16, 1, 8);
+}
+
+function drawVine(px, py) {
+  ctx.strokeStyle = '#3a7a3a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px+6, py);
+  ctx.bezierCurveTo(px+12, py+10, px+2, py+20, px+10, py+TILE-4);
+  ctx.stroke();
+  ctx.fillStyle = '#2d5a2d';
+  for (let i = 0; i < 4; i++) {
+    const ly = py + 4 + i*8;
+    ctx.beginPath(); ctx.ellipse(px+6+(i%2?4:-3), ly, 3, 2, 0.5, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawGlowMushroom(px, py) {
+  ctx.fillStyle = '#3a3a5a';
+  ctx.fillRect(px+TILE/2-2, py+TILE-10, 4, 8);
+  const glow = ctx.createRadialGradient(px+TILE/2, py+TILE-11, 1, px+TILE/2, py+TILE-11, 9);
+  glow.addColorStop(0, 'rgba(120,220,255,0.9)');
+  glow.addColorStop(1, 'rgba(60,120,200,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(px+TILE/2-10, py+TILE-21, 20, 20);
+  ctx.fillStyle = '#6ad6ff';
+  ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE-11, 5, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(px+TILE/2-1, py+TILE-12, 1, 0, Math.PI*2); ctx.fill();
+}
+
+function drawBones(px, py) {
+  ctx.fillStyle = '#ddddcc';
+  ctx.fillRect(px+8, py+TILE-8, 16, 3);
+  ctx.beginPath(); ctx.arc(px+8, py+TILE-7, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+24, py+TILE-7, 2.5, 0, Math.PI*2); ctx.fill();
+  // skull
+  ctx.beginPath(); ctx.arc(px+14, py+TILE-14, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#222';
+  ctx.fillRect(px+12, py+TILE-15, 1.5, 1.5);
+  ctx.fillRect(px+15, py+TILE-15, 1.5, 1.5);
+}
+
+function drawCobweb(px, py) {
+  ctx.strokeStyle = 'rgba(220,220,240,0.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px, py); ctx.lineTo(px+14, py+14);
+  ctx.moveTo(px+14, py); ctx.lineTo(px+2, py+12);
+  ctx.moveTo(px, py+8); ctx.lineTo(px+12, py+2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(px+7, py+7, 4, 0, Math.PI*2);
+  ctx.arc(px+7, py+7, 7, 0, Math.PI*2);
+  ctx.stroke();
+}
+
+function drawBanner(px, py, color) {
+  ctx.fillStyle = '#aaaaaa';
+  ctx.fillRect(px+TILE/2-7, py+2, 14, 2);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(px+TILE/2-6, py+4);
+  ctx.lineTo(px+TILE/2+6, py+4);
+  ctx.lineTo(px+TILE/2+6, py+TILE-10);
+  ctx.lineTo(px+TILE/2, py+TILE-6);
+  ctx.lineTo(px+TILE/2-6, py+TILE-10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffcc44';
+  ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE/2-2, 2.5, 0, Math.PI*2); ctx.fill();
+}
+
 function drawEntities(biome) {
   // Blocks
   level.entities.blocks.forEach(b => {
@@ -1064,6 +1325,7 @@ function renderGame() {
       drawTile(level.map[y][x], x*TILE, y*TILE, biome, x, y);
     }
   }
+  drawDecorations(biome);
   drawEntities(biome);
 
   // Determine draw order by Y
@@ -1135,11 +1397,15 @@ function renderGame() {
 const MENU_ITEMS = ['Jouer', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
 
 function renderMenu() {
-  // Background gradient
+  // Semi-transparent menu panel so the fullscreen background remains visible.
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#2a1a4a');
-  g.addColorStop(1, '#0a0520');
+  g.addColorStop(0, 'rgba(42,26,74,0.6)');
+  g.addColorStop(1, 'rgba(10,5,32,0.75)');
   ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // Extra overlay for text readability.
+  ctx.fillStyle = 'rgba(5, 4, 16, 0.2)';
   ctx.fillRect(0, 0, W, H);
 
   // Stars
@@ -1474,6 +1740,8 @@ function renderGameOver() {
 
 // ============ MAIN LOOP ============
 function loop() {
+  document.body.classList.toggle('start-screen-bg', state === STATE.MENU && startScreenReady);
+
   if (state === STATE.MENU) { renderMenu(); updateMenu(); }
   else if (state === STATE.RULES) { renderRules(); updateRules(); }
   else if (state === STATE.CREDITS) { renderCredits(); }
