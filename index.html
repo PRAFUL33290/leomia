@@ -89,6 +89,63 @@
     justify-content: stretch;
   }
   body.menu-mode #game-msg { display: none; }
+  #feedback-panel {
+    display: none;
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    width: 320px;
+    padding: 16px;
+    background: rgba(8, 6, 24, 0.88);
+    border: 2px solid rgba(255,255,255,0.2);
+    box-shadow: 0 0 20px rgba(0,0,0,0.25);
+    border-radius: 12px;
+    z-index: 3;
+    color: #fff;
+  }
+  body.menu-mode #feedback-panel { display: block; }
+  #feedback-panel h3 {
+    color: #ffeb70;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  #feedback-panel p {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #e6ddff;
+    margin-bottom: 10px;
+  }
+  #feedback-name,
+  #feedback-text {
+    width: 100%;
+    font-family: 'Courier New', monospace;
+    border: 1px solid #6a4caf;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  #feedback-name { height: 34px; }
+  #feedback-text { height: 96px; resize: none; }
+  #feedback-submit {
+    width: 100%;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #6a4caf;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #feedback-submit:hover { background: #7d5cc8; }
+  #feedback-status {
+    min-height: 18px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #9ff0b0;
+  }
   /* ---- Panneau de commandes ---- */
   #commands-panel {
     flex: 0 0 220px;
@@ -217,6 +274,15 @@
     <canvas id="game" width="1100" height="660"></canvas>
     <div id="game-msg"></div>
   </div>
+
+  <section id="feedback-panel" aria-label="Commentaires des enfants">
+    <h3>Commentaires</h3>
+    <p>Laisse ici l'avis d'un enfant sur le jeu.</p>
+    <input id="feedback-name" type="text" maxlength="24" placeholder="Prénom (facultatif)">
+    <textarea id="feedback-text" maxlength="280" placeholder="Ton avis sur le jeu..."></textarea>
+    <button id="feedback-submit" type="button">Envoyer l'avis</button>
+    <div id="feedback-status"></div>
+  </section>
 
   <aside id="commands-panel">
     <!-- LÉO -->
@@ -541,6 +607,33 @@ const SFX = {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
+const feedbackNameInput = document.getElementById('feedback-name');
+const feedbackTextInput = document.getElementById('feedback-text');
+const feedbackSubmitBtn = document.getElementById('feedback-submit');
+const feedbackStatus = document.getElementById('feedback-status');
+
+function saveFeedback() {
+  const text = feedbackTextInput.value.trim();
+  const name = feedbackNameInput.value.trim();
+  if (!text) {
+    feedbackStatus.textContent = 'Écris un petit avis avant d\'envoyer.';
+    feedbackStatus.style.color = '#ffb3b3';
+    return;
+  }
+  const allFeedback = JSON.parse(localStorage.getItem('leomia_feedback') || '[]');
+  allFeedback.push({
+    name: name || 'Anonyme',
+    text,
+    date: new Date().toISOString()
+  });
+  localStorage.setItem('leomia_feedback', JSON.stringify(allFeedback));
+  feedbackTextInput.value = '';
+  feedbackNameInput.value = '';
+  feedbackStatus.textContent = 'Merci, ton avis a été enregistré !';
+  feedbackStatus.style.color = '#9ff0b0';
+}
+
+feedbackSubmitBtn.addEventListener('click', saveFeedback);
 
 function assetUrl(path) {
   return new URL(path, window.location.href).href;
