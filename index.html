@@ -146,6 +146,95 @@
     font-size: 12px;
     color: #9ff0b0;
   }
+  #comments-viewer {
+    display: none;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(760px, 90vw);
+    max-height: 78vh;
+    padding: 18px;
+    background: rgba(8, 6, 24, 0.95);
+    border: 2px solid rgba(255,255,255,0.22);
+    box-shadow: 0 0 26px rgba(0,0,0,0.35);
+    border-radius: 14px;
+    z-index: 5;
+    color: #fff;
+  }
+  #comments-viewer.open { display: block; }
+  #comments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  #comments-header h3 {
+    color: #ffeb70;
+    font-size: 20px;
+  }
+  #comments-close {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: #6a4caf;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  #comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: calc(78vh - 72px);
+    padding-right: 4px;
+  }
+  .comment-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .comment-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .comment-name {
+    color: #ffeb70;
+    font-weight: bold;
+    font-size: 13px;
+  }
+  .comment-date {
+    color: #cbbcff;
+    font-size: 11px;
+  }
+  .comment-text {
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .comment-delete {
+    border: 0;
+    background: transparent;
+    color: #ff8b8b;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .comments-empty {
+    color: #ddd;
+    font-size: 13px;
+    text-align: center;
+    padding: 28px 0;
+  }
   /* ---- Panneau de commandes ---- */
   #commands-panel {
     flex: 0 0 220px;
@@ -282,6 +371,14 @@
     <textarea id="feedback-text" maxlength="280" placeholder="Ton avis sur le jeu..."></textarea>
     <button id="feedback-submit" type="button">Envoyer l'avis</button>
     <div id="feedback-status"></div>
+  </section>
+
+  <section id="comments-viewer" aria-label="Lire les commentaires">
+    <div id="comments-header">
+      <h3>Lire les commentaires</h3>
+      <button id="comments-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="comments-list"></div>
   </section>
 
   <aside id="commands-panel">
@@ -611,6 +708,17 @@ const feedbackNameInput = document.getElementById('feedback-name');
 const feedbackTextInput = document.getElementById('feedback-text');
 const feedbackSubmitBtn = document.getElementById('feedback-submit');
 const feedbackStatus = document.getElementById('feedback-status');
+const commentsViewer = document.getElementById('comments-viewer');
+const commentsList = document.getElementById('comments-list');
+const commentsCloseBtn = document.getElementById('comments-close');
+
+function getFeedbackEntries() {
+  return JSON.parse(localStorage.getItem('leomia_feedback') || '[]');
+}
+
+function setFeedbackEntries(entries) {
+  localStorage.setItem('leomia_feedback', JSON.stringify(entries));
+}
 
 function saveFeedback() {
   const text = feedbackTextInput.value.trim();
@@ -620,20 +728,72 @@ function saveFeedback() {
     feedbackStatus.style.color = '#ffb3b3';
     return;
   }
-  const allFeedback = JSON.parse(localStorage.getItem('leomia_feedback') || '[]');
+  const allFeedback = getFeedbackEntries();
   allFeedback.push({
     name: name || 'Anonyme',
     text,
     date: new Date().toISOString()
   });
-  localStorage.setItem('leomia_feedback', JSON.stringify(allFeedback));
+  setFeedbackEntries(allFeedback);
   feedbackTextInput.value = '';
   feedbackNameInput.value = '';
   feedbackStatus.textContent = 'Merci, ton avis a été enregistré !';
   feedbackStatus.style.color = '#9ff0b0';
+  renderCommentsList();
 }
 
 feedbackSubmitBtn.addEventListener('click', saveFeedback);
+
+function formatFeedbackDate(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+function renderCommentsList() {
+  const entries = getFeedbackEntries();
+  if (entries.length === 0) {
+    commentsList.innerHTML = '<div class="comments-empty">Aucun commentaire pour le moment.</div>';
+    return;
+  }
+  commentsList.innerHTML = entries.map((entry, index) => `
+    <div class="comment-card">
+      <div class="comment-top">
+        <div>
+          <div class="comment-name">${escapeHtml(entry.name)}</div>
+          <div class="comment-date">${formatFeedbackDate(entry.date)}</div>
+        </div>
+        <button class="comment-delete" type="button" data-comment-index="${index}" aria-label="Supprimer">×</button>
+      </div>
+      <div class="comment-text">${escapeHtml(entry.text)}</div>
+    </div>
+  `).join('');
+}
+
+function openCommentsViewer() {
+  renderCommentsList();
+  commentsViewer.classList.add('open');
+}
+
+function closeCommentsViewer() {
+  commentsViewer.classList.remove('open');
+}
+
+commentsCloseBtn.addEventListener('click', closeCommentsViewer);
+commentsList.addEventListener('click', e => {
+  const btn = e.target.closest('.comment-delete');
+  if (!btn) return;
+  const idx = Number(btn.dataset.commentIndex);
+  const entries = getFeedbackEntries();
+  if (Number.isNaN(idx) || !entries[idx]) return;
+  entries.splice(idx, 1);
+  setFeedbackEntries(entries);
+  renderCommentsList();
+});
 
 function assetUrl(path) {
   return new URL(path, window.location.href).href;
@@ -2815,7 +2975,7 @@ function renderGame() {
 
 // ============ MENU ============
 const INTRO_VIDEO_URL = 'https://www.youtube.com/watch?v=Q75B_D2FA7o';
-const MENU_ITEMS = ['Jouer', 'Voir la vidéo du jeu', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
+const MENU_ITEMS = ['Jouer', 'Voir la vidéo du jeu', 'Lire les commentaires', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
 
 function renderMenu() {
   ctx.clearRect(0, 0, W, H);
@@ -2869,14 +3029,19 @@ function renderMenu() {
 }
 
 function updateMenu() {
+  if (commentsViewer.classList.contains('open')) {
+    if (consumePress('Escape') || consumePress('Enter')) closeCommentsViewer();
+    return;
+  }
   if (consumePress('ArrowUp') || consumePress('KeyW') || consumePress('KeyZ')) menuIndex = (menuIndex - 1 + MENU_ITEMS.length) % MENU_ITEMS.length;
   if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = (menuIndex + 1) % MENU_ITEMS.length;
   if (consumePress('Enter') || consumePress('Space')) {
     if (menuIndex === 0) { currentLevel = 0; state = STATE.INTRO; }
     else if (menuIndex === 1) window.open(INTRO_VIDEO_URL, '_blank', 'noopener,noreferrer');
-    else if (menuIndex === 2) state = STATE.LEVEL_SELECT;
-    else if (menuIndex === 3) { state = STATE.RULES; rulesScroll = 0; }
-    else if (menuIndex === 4) state = STATE.CREDITS;
+    else if (menuIndex === 2) openCommentsViewer();
+    else if (menuIndex === 3) state = STATE.LEVEL_SELECT;
+    else if (menuIndex === 4) { state = STATE.RULES; rulesScroll = 0; }
+    else if (menuIndex === 5) state = STATE.CREDITS;
   }
 }
 
