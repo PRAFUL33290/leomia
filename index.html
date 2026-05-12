@@ -279,6 +279,8 @@ function resumeCurrentTrackFromVisibility() {
 }
 
 document.addEventListener('visibilitychange', () => {
+  if (typeof state === 'undefined') return;
+  if (state !== STATE.MENU) return;
   if (document.hidden) pauseCurrentTrackForVisibility();
   else resumeCurrentTrackFromVisibility();
 });
