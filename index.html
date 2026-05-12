@@ -23,7 +23,7 @@
     content: '';
     position: fixed;
     inset: 0;
-    background-image: url('BACKGROUND/START SCREEN.png');
+    background-image: url('START SCREEN.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -206,7 +206,8 @@
       <b>Léo</b> casse les blocs fissurés en marchant dedans.<br>
       <b>Léo</b> frappe les ennemis et les pics avec l'épée.<br>
       <b>Léo seul</b> peut ouvrir les portes 🗝.<br>
-      <b>Mia</b> révèle les passages cachés (touche F).<br>
+      <b>Mia</b> révèle les passages cachés et enchante un mur pour le traverser (touche F).<br>
+      <b>Mia</b> repousse les monstres avec sa magie.<br>
       <b>Mia</b> se pose sur l'interrupteur pour ouvrir la grille.<br>
       Les <b>deux héros</b> doivent atteindre le cristal 💎 !
     </div>
@@ -222,9 +223,11 @@
     <div class="cmd-player">
       <div class="cmd-title leo">⚔️ Léo — Joueur 1</div>
       <div class="cmd-row"><span class="key">← ↑ ↓ →</span><span class="action">Se déplacer</span></div>
-      <div class="cmd-row"><span class="key">Shift droit</span><span class="action">Frapper à l'épée ⚔️</span></div>
+      <div class="cmd-row"><span class="key">Shift droit / Espace</span><span class="action">Frapper à l'épée ⚔️</span></div>
+      <div class="cmd-row"><span class="key">Alt droit</span><span class="action">Faire apparaître le bouclier 🛡</span></div>
       <div class="cmd-row" style="font-size:14px;color:#ffffff;margin-top:4px;">
         Casse les blocs fissurés en marchant.<br>
+        Le bouclier bloque pics et monstres.<br>
         🗝 <b style="color:#ffeb70">Seul Léo</b> ouvre les portes.
       </div>
     </div>
@@ -232,10 +235,10 @@
     <div class="cmd-player">
       <div class="cmd-title mia">✨ Mia — Joueur 2</div>
       <div class="cmd-row"><span class="key">Z Q S D</span><span class="action">Se déplacer</span></div>
-      <div class="cmd-row"><span class="key">F</span><span class="action">Révéler un passage ✨</span></div>
+      <div class="cmd-row"><span class="key">F</span><span class="action">Magie : révéler / traverser / repousser ✨</span></div>
       <div class="cmd-row"><span class="key">Échap</span><span class="action">Menu / Pause</span></div>
       <div class="cmd-row" style="font-size:14px;color:#ffffff;margin-top:4px;">
-        Pose-toi sur 🔘 pour ouvrir la grille.
+        3 charges de magie, puis récupération.
       </div>
     </div>
   </aside>
@@ -257,11 +260,19 @@ function setMusic(track) {
   if (currentTrack) currentTrack.play().catch(() => {});
 }
 
+function resumeCurrentTrack() {
+  if (!currentTrack) return;
+  currentTrack.play().catch(() => {});
+}
+
 // ============ SOUND FX ============
 const _ac = new (window.AudioContext || window.webkitAudioContext)();
 // Débloquer l'AudioContext au premier clic/touche
 (function _acUnlock() {
-  const resume = () => { if (_ac.state === 'suspended') _ac.resume(); };
+  const resume = () => {
+    if (_ac.state === 'suspended') _ac.resume();
+    resumeCurrentTrack();
+  };
   document.addEventListener('keydown', resume, { once: true });
   document.addEventListener('click',   resume, { once: true });
 })();
@@ -439,6 +450,33 @@ const SFX = {
     o.start(t); o.stop(t + 0.28);
   },
 
+  // Bouclier activé
+  shield() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(240, t);
+    o.frequency.linearRampToValueAtTime(520, t + 0.08);
+    o.frequency.exponentialRampToValueAtTime(280, t + 0.28);
+    g.gain.setValueAtTime(0.22, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+    o.start(t); o.stop(t + 0.32);
+  },
+
+  // Bouclier qui bloque un danger
+  shieldBlock() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(780, t);
+    o.frequency.exponentialRampToValueAtTime(320, t + 0.12);
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.start(t); o.stop(t + 0.18);
+  },
+
   // Cristal collecté — fanfare victorieuse
   crystal() {
     const t = _ac.currentTime;
@@ -484,6 +522,10 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
+function assetUrl(path) {
+  return new URL(path, window.location.href).href;
+}
+
 // ============ SPRITE LOADING ============
 const SPRITES = { leo: {}, mia: {} };
 let spritesLoaded = 0;
@@ -503,7 +545,7 @@ for (const [key, path] of Object.entries(SPRITE_FILES)) {
   const img = new Image();
   img.onload = () => { spritesLoaded++; };
   img.onerror = () => { spritesLoaded++; };
-  img.src = encodeURI(path);
+  img.src = assetUrl(path);
   SPRITES[who][dir] = img;
 }
 function spritesReady() { return spritesLoaded >= SPRITE_TOTAL; }
@@ -513,7 +555,13 @@ const START_SCREEN = new Image();
 let startScreenReady = false;
 START_SCREEN.onload = () => { startScreenReady = true; };
 START_SCREEN.onerror = () => { startScreenReady = false; };
-START_SCREEN.src = encodeURI('BACKGROUND/START SCREEN.png');
+START_SCREEN.src = assetUrl('START SCREEN.png');
+
+const GAME_LOGO = new Image();
+let gameLogoReady = false;
+GAME_LOGO.onload = () => { gameLogoReady = true; };
+GAME_LOGO.onerror = () => { gameLogoReady = false; };
+GAME_LOGO.src = assetUrl('LOGO.png');
 
 const W = canvas.width, H = canvas.height;
 const TILE = 40;
@@ -524,12 +572,14 @@ const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 
 let state = STATE.MENU;
 let menuIndex = 0;
 let currentLevel = 0;
-let maxUnlocked = 9;
+let maxUnlocked = 14;
 let crystals = 0;
 let activeChar = 0; // 0 = Léo, 1 = Mia
 let message = '';
 let messageTimer = 0;
 let rulesScroll = 0;
+const MIA_MAGIC_MAX = 3;
+const MIA_MAGIC_COOLDOWN = 8 * 60;
 
 // ============ INPUT ============
 const keys = {};
@@ -553,10 +603,10 @@ const T = {
   DUAL_A: 11, DUAL_B: 12, TORCH_PICKUP: 13, DARK_FLOOR: 14,
   TIMER_TILE: 15, BOSS_FLOOR: 16, CHECKPOINT: 17, ORB: 18,
   WEAK_WALL: 19, SYMBOL_A: 20, SYMBOL_B: 21, SYMBOL_C: 22,
-  PLATE_A: 23, PLATE_B: 24, PLATE_C: 25,
+  PLATE_A: 23, PLATE_B: 24, PLATE_C: 25, MIA_WALL: 26,
 };
 
-// ============ LEVELS (10 niveaux) ============
+// ============ LEVELS (15 niveaux) ============
 // Map encoding: . floor, # wall, K key, D door, E exit, C crystal, S switch, G gate, X spike,
 // B block, H hidden wall, 1 dual plate A, 2 dual plate B, t torch pickup, d dark floor,
 // L Léo start, M Mia start, * weak wall, o orb, p checkpoint
@@ -564,231 +614,562 @@ const T = {
 
 const LEVELS = [
   {
-    name: "1. La Forêt d'Apprentissage",
-    hint: "Léo : trouve la clé 🗝 puis marche vers la porte. Les deux héros doivent atteindre le cristal 💎 !",
+    name: "1. Le Verrou des Deux Héros",
+    hint: "Mia révèle l'accès, Léo brise puis ouvre. Même le premier niveau demande déjà de combiner magie, épée et porte.",
     biome: 'forest',
+    steps: [
+      "Avec Mia, appuie sur F pour montrer le passage caché.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, casse le mur fragile si besoin.",
+      "Avec Léo, ouvre la porte.",
+      "Amène Léo et Mia ensemble sur le cristal.",
+    ],
     map: [
-      "###########################",
-      "#L........................#",
-      "#.........................#",
-      "#......K..................#",
-      "#.........................#",
-      "#.........................#",
-      "#.........................#",
-      "##########D################",
-      "#.........................#",
-      "#.........................#",
-      "#.........................#",
-      "#.........................#",
-      "#.........C...............#",
-      "#.........................#",
-      "#M........................#",
-      "###########################",
+      "####################",
+      "#L..#...K..#..H..M.#",
+      "#.#.#.###..#.##.#..#",
+      "#.#...#....#....#..#",
+      "#.###.#.####.##.#X.#",
+      "#...#.#....#..#.#..#",
+      "###.#.####.#.##.#..#",
+      "#...#....#.#....#..#",
+      "#.#####.#.#.####.#.#",
+      "#.....#.#.#....#.#.#",
+      "#.###.#.#.####.#.#.#",
+      "#.#...#.#....#.#.#.#",
+      "#.#.###.####.#.#.#.#",
+      "#.#....*...D.#...C.#",
+      "#.###############..#",
+      "####################",
     ]
   },
   {
     name: "2. Les Portes Oubliées",
-    hint: "Mia se pose sur l'interrupteur 🔘 pour que Léo passe. Léo frappe les ennemis à l'épée (Shift) !",
+    hint: "Le chrono de grille force la coordination : Mia active, Léo traverse, neutralise le pic puis ouvre la porte.",
     biome: 'forest',
+    steps: [
+      "Avec Mia, va sur l'interrupteur.",
+      "Fais passer Léo avant que la grille se referme.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, détruis le pic avec Shift.",
+      "Avec Léo, ouvre la porte.",
+      "Amène les deux héros sur le cristal.",
+    ],
     map: [
-      "###########################",
-      "#L........#..............M#",
-      "#.........#...............#",
-      "#.........#...............#",
-      "#.....X...#...............#",
-      "#.........#...............#",
-      "#.........###########.....#",
-      "#.........#.........G.....#",
-      "#.........#.........#.....#",
-      "#...S.....#....K....#.....#",
-      "#.........#.........#.....#",
-      "#.........###########.....#",
-      "#.........................#",
-      "#..........C..............#",
-      "#.........................#",
-      "###########################",
+      "####################",
+      "#L...#....H.....#M.#",
+      "#.##.#.#######..#..#",
+      "#..#.#...S...#..#..#",
+      "##.#.###.###.#.##..#",
+      "#..#...#...#.#..#..#",
+      "#.####.###.#.##.#G##",
+      "#....#...#.#....#..#",
+      "#.##.###.#.####.#..#",
+      "#.#..K.#.#....#.#..#",
+      "#.#.###.#.##.#.#.###",
+      "#.#...#...#..#.#...#",
+      "#.###.#####.##.###.#",
+      "#...#..X..D....#C..#",
+      "#...###########....#",
+      "####################",
     ]
   },
   {
     name: "3. La Grotte des Pièges",
-    hint: "Léo : utilise l'épée (Shift) pour détruire les pics et atteindre la clé !",
+    hint: "Mia doit d'abord révéler l'itinéraire sûr vers la clé, puis Léo casse le mur et tranche les pics pour finir la route.",
     biome: 'cave',
+    steps: [
+      "Avec Mia, trouve et révèle le bon passage avec F.",
+      "Avec Léo, avance jusqu'à la clé.",
+      "Avec Léo, casse le mur fragile.",
+      "Avec Léo, détruis les pics avec Shift.",
+      "Avec Léo, ouvre la porte.",
+      "Mets Léo et Mia sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 4, y: 5, dx: 1, dy: 0, type: 'slime' },
+      { x: 12, y: 9, dx: -1, dy: 0, type: 'slime' },
+    ],
     map: [
-      "###########################",
-      "#L........................#",
-      "#.........................#",
-      "#....X....X....X..........#",
-      "#.........................#",
-      "#............K............#",
-      "#.........................#",
-      "#########D#################",
-      "#.........................#",
-      "#.........................#",
-      "#....X....X....X..........#",
-      "#.........................#",
-      "#............C............#",
-      "#.........................#",
-      "#M........................#",
-      "###########################",
+      "####################",
+      "#L..#....H....#...M#",
+      "#.#.#.######.#.###.#",
+      "#.#...#X..K#.#...#.#",
+      "#.#####.##.#.###.#.#",
+      "#.....#....#...#.#.#",
+      "###.#.######.#.#.#.#",
+      "#...#....*...#.#.#.#",
+      "#.#######D####.#.#.#",
+      "#.....#....X...#.#.#",
+      "#.###.#.######.#.#.#",
+      "#.#...#......#.#...#",
+      "#.#.########.#.###.#",
+      "#.#........#...#.C.#",
+      "#.########.#####...#",
+      "####################",
     ]
   },
   {
     name: "4. Les Couloirs Cachés",
-    hint: "Mia peut révéler les murs invisibles (H). Change de perso avec Tab.",
+    hint: "Le faux labyrinthe ne s'ouvre qu'avec l'orbe de Mia, puis Léo doit exploiter l'ouverture et la porte jusqu'au cristal.",
     biome: 'temple',
+    steps: [
+      "Avec Mia, prends l'orbe magique.",
+      "Avec Mia, révèle les passages cachés.",
+      "Avec Mia, active l'interrupteur pour ouvrir la grille.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, ouvre la porte.",
+      "Rejoins le cristal avec les deux héros.",
+    ],
+    enemySpawns: [
+      { x: 9, y: 7, dx: 1, dy: 0, type: 'slime' },
+      { x: 16, y: 9, dx: 0, dy: 1, type: 'bat' },
+    ],
     map: [
       "####################",
-      "#L.................#",
-      "#.####HHHH####.....#",
-      "#.#..........#.....#",
-      "#.#.K..####..#.....#",
-      "#.#....#..#..#..o..#",
-      "#.######..####.....#",
-      "#........HH........#",
-      "#.######..####.....#",
-      "#.#....#..#..#.....#",
-      "#.#....####..#.....#",
-      "#.#..........#.....#",
-      "#.####HHHH####.....#",
-      "#M................DC",
+      "#L...#..H....#....M#",
+      "#.##.#.####.#.###..#",
+      "#..#.#....#.#...#..#",
+      "##.#.##o.#.###.#.#.#",
+      "#..#..#..#.....#.#.#",
+      "#.####.#.#######.#.#",
+      "#....#.#...S..#.#..#",
+      "#.##.#.#####.#.#G#.#",
+      "#.#..#.....#.#.#...#",
+      "#.#.#####.#.#.#.##.#",
+      "#.#...K...#.#.#..#.#",
+      "#.###.#####.##.#.#.#",
+      "#...#....D....#.#C.#",
+      "#...############...#",
       "####################",
     ]
   },
   {
-    name: "5. Le Temple des Deux Héros — Coopération",
-    hint: "Les deux plaques (1) et (2) doivent être pressées en même temps !",
+    name: "5. Le Temple des Deux Héros",
+    hint: "Les deux plaques ouvrent la grille, puis Mia doit passer à travers un mur enchanté pour récupérer la clé pendant que Léo sécurise le trajet.",
     biome: 'temple',
+    steps: [
+      "Place Léo et Mia sur les plaques 1 et 2.",
+      "Avec Mia, appuie sur F contre un mur pour le traverser.",
+      "Avec Mia, va chercher la clé.",
+      "Avec Léo, protège Mia des monstres.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Amène les deux héros sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 7, y: 7, dx: 1, dy: 0, type: 'slime' },
+      { x: 16, y: 7, dx: 0, dy: 1, type: 'bat' },
+    ],
     map: [
       "####################",
-      "#L........#........M",
-      "#.........#........#",
-      "#..1......#......2.#",
-      "#.........#........#",
-      "#.........#........#",
-      "###########G########",
-      "#..................#",
-      "#..................#",
-      "#........K.........#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#.........DC.......#",
+      "#L....#......#...M.#",
+      "#.##.#.#.##.#.#.##.#",
+      "#..1.#.#.##.#.#.2..#",
+      "##.#.#.#.##.#.#.#.##",
+      "#..#.#.#....#.#.#..#",
+      "#.##.#.######.#.##.#",
+      "#....#...G....#....#",
+      "#.######.##.######.#",
+      "#.#..H...##...H..#.#",
+      "#.#.###.####.###.#.#",
+      "#.#...#.#K##...#.#.#",
+      "#.###.####.#.###.#.#",
+      "#...#...*D...#..C..#",
+      "#...##############.#",
       "####################",
     ]
   },
   {
-    name: "6. Les Symboles Perdus — Logique",
-    hint: "Marche sur les plaques a, b, c dans l'ordre alphabétique pour ouvrir la grille.",
+    name: "6. Les Symboles Perdus",
+    hint: "L'ordre A-B-C ne suffit pas : Mia doit rendre le trajet possible, puis Léo ouvrir le passage final avec la clé et la porte.",
     biome: 'temple',
+    steps: [
+      "Marche sur les symboles dans l'ordre A, puis B, puis C.",
+      "Avec Mia, révèle ou traverse ce qui bloque le chemin.",
+      "Avec Mia ou Léo, récupère la clé.",
+      "Avec Léo, fais attention aux monstres.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Termine avec Léo et Mia sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 8, y: 7, dx: 1, dy: 0, type: 'slime' },
+      { x: 15, y: 5, dx: 0, dy: 1, type: 'bat' },
+      { x: 12, y: 11, dx: -1, dy: 0, type: 'slime' },
+    ],
     map: [
       "####################",
-      "#L.................#",
-      "#..................#",
-      "#....b.....c.......#",
-      "#..................#",
-      "#..................#",
-      "#........a.........#",
-      "#..................#",
-      "##########G#########",
-      "#..................#",
-      "#..................#",
-      "#......K...........#",
-      "#..................#",
-      "#M..............D.C#",
+      "#L...#....H...#...M#",
+      "#.##.#.######.#.##.#",
+      "#..#.#...b..#.#..#.#",
+      "##.#.###.##.#.##.#.#",
+      "#..#...#..#.#....#.#",
+      "#.####.#a.#.####.#.#",
+      "#....#.#..#....#.#.#",
+      "#.##.#.####.##.#G#.#",
+      "#.#..#....#..#.#.#.#",
+      "#.#.######.##.#.#.##",
+      "#.#....c...K.#.#...#",
+      "#.######.###.#.###.#",
+      "#....*..D....#..C..#",
+      "#..##############..#",
       "####################",
     ]
   },
   {
-    name: "7. Les Couloirs du Gardien — Ennemis",
-    hint: "Évite les ennemis ! Léo peut les frapper avec Espace (épée).",
+    name: "7. Les Couloirs du Gardien",
+    hint: "Le niveau de combat impose une vraie séparation des rôles : Mia ouvre l'accès, Léo nettoie les menaces et sécurise la porte.",
     biome: 'cave',
+    steps: [
+      "Avec Mia, révèle le passage caché avec F.",
+      "Avec Léo, bats les monstres avec Shift.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Garde Mia en sécurité.",
+      "Amène les deux héros sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 5, y: 4, dx: 1, dy: 0, type: 'slime' },
+      { x: 8, y: 7, dx: -1, dy: 0, type: 'slime' },
+      { x: 11, y: 9, dx: 0, dy: 1, type: 'bat' },
+      { x: 14, y: 5, dx: 0, dy: 1, type: 'bat' },
+      { x: 6, y: 11, dx: 1, dy: 0, type: 'slime' },
+    ],
     map: [
       "####################",
-      "#L.................#",
-      "#.####.####.####.#.#",
-      "#.#..#.#..#.#..#.#.#",
-      "#.#..#.#..#.#..#.#.#",
-      "#.####.####.####.#.#",
-      "#..................#",
-      "#.################.#",
-      "#..................#",
-      "#.####.####.####.#.#",
-      "#.#..#.#..#.#..#.#.#",
-      "#.#K.#.#..#.#..#.#C#",
-      "#.####.####.####.#.#",
-      "#M................D#",
+      "#L..#....H...#...M.#",
+      "#.#.#.######.#.###.#",
+      "#.#...#....#.#...#.#",
+      "#.###.#.##.#.###.#.#",
+      "#...#.#X.#.#...#.#.#",
+      "###.#.##.#.###.#.#.#",
+      "#...#....#...#.#...#",
+      "#.#######G##.#.###.#",
+      "#.#..K..#...#...#..#",
+      "#.#.##.###.#####.#.#",
+      "#.#..#...#.....#.#.#",
+      "#.##.###.#####.#.#.#",
+      "#...#..*D....#..#C.#",
+      "#...#############..#",
       "####################",
     ]
   },
   {
     name: "8. Les Profondeurs Noires",
-    hint: "Il fait sombre... ramasse la torche (t) pour voir plus loin.",
+    hint: "Dans l'obscurité, Mia trouve le bon axe et Léo ouvre la route. La torche aide, mais elle ne remplace pas la lecture du donjon.",
     biome: 'dark',
+    steps: [
+      "Avec Mia, appuie sur F pour faire de la lumière.",
+      "Prends la torche pour mieux voir.",
+      "Avec Mia, active l'interrupteur si besoin.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Rejoins le cristal avec Léo et Mia.",
+    ],
+    enemySpawns: [
+      { x: 6, y: 6, dx: 1, dy: 0, type: 'slime' },
+      { x: 17, y: 8, dx: 0, dy: 1, type: 'bat' },
+      { x: 10, y: 11, dx: -1, dy: 0, type: 'slime' },
+      { x: 4, y: 12, dx: 0, dy: -1, type: 'bat' },
+    ],
     map: [
       "####################",
-      "#L.................#",
-      "#.dddddddddddddddd.#",
-      "#.d..............d.#",
-      "#.d.t............d.#",
-      "#.d..............d.#",
-      "#.d....######....d.#",
-      "#.d....#K..#.....d.#",
-      "#.d....#...#.....d.#",
-      "#.d....######....d.#",
-      "#.d..............d.#",
-      "#.d..............d.#",
-      "#.dddddddddddddddd.#",
-      "#M................DC",
+      "#L..d....H....d..M.#",
+      "#.d#.######.#.d##..#",
+      "#.d#....t.#.#.d.#..#",
+      "#.d###.##.#.#.d.#X.#",
+      "#.d..#....#.#.d.#..#",
+      "#.dd.#.####.#.d.##.#",
+      "#..d.#..S...#d..#G.#",
+      "##.d.######.#d###..#",
+      "#..d...K..#.#d..#..#",
+      "#.d#####.#.#d#.#.###",
+      "#.d....#.#..d#.#...#",
+      "#.dddd.#.####d#.##.#",
+      "#....*.D.....d#..C.#",
+      "#..#############...#",
       "####################",
     ]
   },
   {
     name: "9. Le Labyrinthe du Temps",
-    hint: "Atteins la sortie avant que le temps soit écoulé !",
+    hint: "Le temps est désormais serré : Mia révèle et active vite, Léo prend les risques, ouvre la porte et rassemble les héros sur le cristal.",
     biome: 'cave',
-    timer: 45,
+    timer: 35,
+    steps: [
+      "Va vite : le temps est limité.",
+      "Avec Mia, révèle le passage ou aide Léo à avancer.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Évite les monstres pour ne pas perdre de temps.",
+      "Mets les deux héros sur le cristal avant la fin.",
+    ],
+    enemySpawns: [
+      { x: 3, y: 7, dx: 1, dy: 0, type: 'slime' },
+      { x: 12, y: 5, dx: 0, dy: 1, type: 'bat' },
+      { x: 15, y: 9, dx: -1, dy: 0, type: 'slime' },
+      { x: 7, y: 12, dx: 0, dy: -1, type: 'bat' },
+      { x: 14, y: 13, dx: -1, dy: 0, type: 'slime' },
+    ],
     map: [
       "####################",
-      "#L.................#",
-      "#.################.#",
-      "#..................#",
-      "################.#.#",
-      "#..............#.#.#",
-      "#.############.#.#.#",
-      "#.#..........#.#.#.#",
-      "#.#.########.#.#.#.#",
-      "#.#.#......#.#.#.#.#",
-      "#.#.#.K....#.#...#.#",
-      "#.#.########.#####.#",
-      "#.#................#",
-      "#M################DC",
+      "#L...#..H....#...M.#",
+      "#.##.#.####.#.###..#",
+      "#..#.#....#.#...#..#",
+      "##.#.###S##.###.#..#",
+      "#..#...#..#...#.#..#",
+      "#.###.#.#.###.#G#..#",
+      "#...#.#.#...#.#.#..#",
+      "###.#.#.###.#.#.#..#",
+      "#...#.#K..#.#.#.#..#",
+      "#.###.####.#.#.#.###",
+      "#.#...#....#.#...#.#",
+      "#.#.###.####.###.#.#",
+      "#...*.D........#C..#",
+      "#..#############...#",
       "####################",
     ]
   },
   {
-    name: "10. Le Château du Cristal — Boss",
-    hint: "Frappe le Gardien à l'épée 5 fois pour libérer le cristal !",
+    name: "10. Le Château du Cristal",
+    hint: "Le château déborde de monstres : Mia doit couvrir Léo avec sa magie, franchir des murs enchantés et lui ouvrir la voie jusqu'au Gardien.",
     biome: 'castle',
     boss: true,
+    bossHp: 7,
+    steps: [
+      "Avec Mia, aide Léo en repoussant les monstres.",
+      "Avec Mia, utilise F pour traverser les murs utiles.",
+      "Avec Mia, active l'interrupteur pour ouvrir la grille.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, bats le Gardien avec Shift.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Amène les deux héros sur le cristal final.",
+    ],
+    enemySpawns: [
+      { x: 2, y: 3, dx: 1, dy: 0, type: 'slime' },
+      { x: 13, y: 2, dx: -1, dy: 0, type: 'bat' },
+      { x: 11, y: 4, dx: 0, dy: 1, type: 'slime' },
+      { x: 15, y: 3, dx: 0, dy: 1, type: 'bat' },
+      { x: 6, y: 8, dx: 1, dy: 0, type: 'slime' },
+      { x: 14, y: 8, dx: -1, dy: 0, type: 'slime' },
+      { x: 8, y: 11, dx: 0, dy: -1, type: 'bat' },
+      { x: 17, y: 11, dx: 0, dy: 1, type: 'bat' },
+    ],
     map: [
       "####################",
-      "#L................M#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#........@.........#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#..................#",
-      "#.................C#",
+      "#L...#....H....#..M#",
+      "#.##.#.######.#.##.#",
+      "#..#.#...S..#.#..#.#",
+      "##.#.###.##.#.##.#.#",
+      "#..#...#..#.#....#.#",
+      "#.####.#@.#.####.#.#",
+      "#....#.#..#....#G#.#",
+      "#.##.#.####.##.#.#.#",
+      "#.#..#....#..#.#.#.#",
+      "#.#.######.##.#.#..#",
+      "#.#....K...#..#.#..#",
+      "#.######.###.##.#..#",
+      "#....*..D......#C..#",
+      "#..#############...#",
+      "####################",
+    ]
+  },
+  {
+    name: "11. Le Miroir des Ombres (bonus)",
+    hint: "Un bonus difficile où Mia ouvre des raccourcis invisibles pendant que Léo force le passage et sécurise la clé.",
+    biome: 'dark',
+    steps: [
+      "Avec Mia, utilise F pour faire de la lumière.",
+      "Avec Mia, révèle les passages cachés.",
+      "Avec Mia, active l'interrupteur pour la grille.",
+      "Avec Léo, bats les monstres et prends la clé.",
+      "Avec Léo, casse le mur fragile puis ouvre la porte.",
+      "Amène les deux héros sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 6, y: 5, dx: 1, dy: 0, type: 'slime' },
+      { x: 15, y: 5, dx: -1, dy: 0, type: 'slime' },
+      { x: 10, y: 9, dx: 0, dy: 1, type: 'bat' },
+      { x: 16, y: 11, dx: 0, dy: -1, type: 'bat' },
+    ],
+    map: [
+      "####################",
+      "#L..d..H...#....M..#",
+      "#.##d#.###.#.###.#.#",
+      "#..#d#...#.#...#.#.#",
+      "##.#d##S#.#.#.#.#.##",
+      "#..#d...#...#.#....#",
+      "#.###.#####.###G##.#",
+      "#...#...#H..#.....##",
+      "#.#.###.#.###.###..#",
+      "#.#...#.#K..#...#..#",
+      "#.###.#.###.#.#.#.##",
+      "#...#.#...#.#.#...##",
+      "###.#.###.#.#.###..#",
+      "#...#..*.D...#..C..#",
+      "#..##############..#",
+      "####################",
+    ]
+  },
+  {
+    name: "12. La Citadelle Croisée (bonus)",
+    hint: "Ce bonus demande une vraie coordination : plaques, murs magiques, monstres et porte finale.",
+    biome: 'temple',
+    steps: [
+      "Place Léo et Mia sur les plaques 1 et 2.",
+      "Avec Mia, traverse un mur magique pour ouvrir le chemin.",
+      "Avec Mia, va chercher la clé si besoin.",
+      "Avec Léo, protège Mia et bats les monstres.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Finis avec les deux héros sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 6, y: 7, dx: 1, dy: 0, type: 'slime' },
+      { x: 16, y: 7, dx: -1, dy: 0, type: 'slime' },
+      { x: 15, y: 11, dx: 0, dy: 1, type: 'bat' },
+      { x: 4, y: 11, dx: 0, dy: -1, type: 'bat' },
+    ],
+    map: [
+      "####################",
+      "#L...#.....#....M..#",
+      "#.##.#.###.#.##.##.#",
+      "#..1.#...#.#..2....#",
+      "##.#.###.#.###.###.#",
+      "#..#...#.#...#...#.#",
+      "#.####.#G###.#.#.#.#",
+      "#....#.#...#.#.#...#",
+      "#.##.#.###.#.#.###.#",
+      "#.#..#H..#.#.#...#.#",
+      "#.#.####.#.#.###.#.#",
+      "#.#...K..#...#...#.#",
+      "#.###.######.#.###.#",
+      "#...#..*.D...#..C..#",
+      "#..##############..#",
+      "####################",
+    ]
+  },
+  {
+    name: "13. Les Sceaux du Néant (bonus)",
+    hint: "Ordre magique, obscurité et monstres : ce niveau bonus mélange presque tout ce que les héros ont appris.",
+    biome: 'dark',
+    steps: [
+      "Avec Mia, éclaire le niveau avec F.",
+      "Trouve la torche pour mieux voir.",
+      "Active les symboles dans l'ordre A, puis B, puis C.",
+      "Avec Léo, bats les monstres et prends la clé.",
+      "Avec Léo, ouvre la porte au bon moment.",
+      "Mets Léo et Mia ensemble sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 5, y: 5, dx: 1, dy: 0, type: 'slime' },
+      { x: 15, y: 5, dx: -1, dy: 0, type: 'slime' },
+      { x: 8, y: 9, dx: 0, dy: 1, type: 'bat' },
+      { x: 14, y: 10, dx: 0, dy: -1, type: 'bat' },
+      { x: 12, y: 12, dx: -1, dy: 0, type: 'slime' },
+    ],
+    map: [
+      "####################",
+      "#L..d....H...d..M..#",
+      "#.##d#.###.#.d##.#.#",
+      "#..#d#..b#.#.d.#.#.#",
+      "##.#d##.#.#.d.#.#.##",
+      "#..#d..#t.#.d.#...##",
+      "#.###a##.###.###.#.#",
+      "#...#..#...#...#.#.#",
+      "#.#.##.#G#.#.#.#.#.#",
+      "#.#..#.#.#.#.#...#.#",
+      "#.##.#.#.#K#.#.###.#",
+      "#....#...#.#.#...#.#",
+      "#.######c#.#.###.#.#",
+      "#....*..D..#...C...#",
+      "#..##############..#",
+      "####################",
+    ]
+  },
+  {
+    name: "14. Le Couloir des Héros (bonus)",
+    hint: "Le temps presse : les deux héros doivent enchaîner vite sans se bloquer, sinon le bonus les punit immédiatement.",
+    biome: 'cave',
+    timer: 55,
+    steps: [
+      "Fais vite : le chrono est serré.",
+      "Avec Mia, révèle le passage puis active l'interrupteur.",
+      "Avec Léo, bats les monstres et prends la clé.",
+      "Avec Mia, aide encore avec un mur magique si besoin.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Arrive avec les deux héros sur le cristal avant la fin.",
+    ],
+    enemySpawns: [
+      { x: 3, y: 7, dx: 1, dy: 0, type: 'slime' },
+      { x: 10, y: 5, dx: 0, dy: 1, type: 'bat' },
+      { x: 15, y: 7, dx: -1, dy: 0, type: 'slime' },
+      { x: 8, y: 11, dx: 1, dy: 0, type: 'slime' },
+      { x: 14, y: 11, dx: 0, dy: -1, type: 'bat' },
+    ],
+    map: [
+      "####################",
+      "#L...#..H...#...M..#",
+      "#.##.#.###.#.###.#.#",
+      "#..#.#...#.#...#.#.#",
+      "##.#.##S#.###.#.#.##",
+      "#..#...#.#...#.#...#",
+      "#.###.#.#.###.#G##.#",
+      "#...#.#.#...#.#....#",
+      "#.#.#.#.###.#.####.#",
+      "#.#...#K..#.#....#.#",
+      "#.#####.###.####.#.#",
+      "#.....#...#....#.#.#",
+      "#.###.###.####.#.#.#",
+      "#...#..*.D......C..#",
+      "#..##############..#",
+      "####################",
+    ]
+  },
+  {
+    name: "15. Le Trône des Arcanes (bonus)",
+    hint: "Le dernier bonus combine tout : monstres partout, mur magique, grille, clé, porte et Gardien.",
+    biome: 'castle',
+    boss: true,
+    bossHp: 9,
+    steps: [
+      "Avec Mia, repousse les monstres pour protéger Léo.",
+      "Avec Mia, active l'interrupteur et traverse les murs utiles avec F.",
+      "Avec Léo, bats les monstres dangereux.",
+      "Avec Léo, prends la clé.",
+      "Avec Léo, vaincs le Gardien avec Shift.",
+      "Avec Léo, casse le mur fragile et ouvre la porte.",
+      "Termine le dernier bonus avec les deux héros sur le cristal.",
+    ],
+    enemySpawns: [
+      { x: 2, y: 3, dx: 1, dy: 0, type: 'slime' },
+      { x: 8, y: 3, dx: -1, dy: 0, type: 'bat' },
+      { x: 15, y: 3, dx: 0, dy: 1, type: 'slime' },
+      { x: 6, y: 8, dx: 1, dy: 0, type: 'slime' },
+      { x: 14, y: 8, dx: -1, dy: 0, type: 'slime' },
+      { x: 8, y: 11, dx: 0, dy: -1, type: 'bat' },
+      { x: 15, y: 11, dx: 0, dy: 1, type: 'bat' },
+    ],
+    map: [
+      "####################",
+      "#L...#....H....#..M#",
+      "#.##.#.######.#.##.#",
+      "#..#.#...S..#.#..#.#",
+      "##.#.###.##.#.##.#.#",
+      "#..#...#..#.#....#.#",
+      "#.####.#@.#.####.#.#",
+      "#....#.#..#....#G#.#",
+      "#.##.#.####.##.#.#.#",
+      "#.#..#....#..#.#.#.#",
+      "#.#.######.##.#.#..#",
+      "#.#....K...#..#.#..#",
+      "#.######.###.##.#..#",
+      "#....*..D......#C..#",
+      "#..#############...#",
       "####################",
     ]
   },
 ];
+
+maxUnlocked = LEVELS.length - 1;
 
 // ============ LEVEL PARSING ============
 let level = null;
@@ -798,7 +1179,7 @@ function loadLevel(idx) {
   const map = [];
   const entities = { keys: [], crystals: [], switches: [], gates: [], spikes: [],
     blocks: [], hidden: [], dualPlates: [], symbolPlates: [], torches: [], orbs: [],
-    weakWalls: [], doors: [], exit: null, enemies: [], boss: null };
+    weakWalls: [], doors: [], phaseWalls: [], exit: null, enemies: [], boss: null };
   let leoStart = {x:1,y:1}, miaStart = {x:1,y:2};
 
   for (let y = 0; y < data.map.length; y++) {
@@ -836,25 +1217,35 @@ function loadLevel(idx) {
     map.push(row);
   }
 
-  // Enemies for level 7
-  if (idx === 6) {
-    entities.enemies.push({x: 5*TILE, y: 6*TILE, dx: 1, dy: 0, type: 'slime', alive: true});
-    entities.enemies.push({x: 12*TILE, y: 6*TILE, dx: -1, dy: 0, type: 'slime', alive: true});
-    entities.enemies.push({x: 9*TILE, y: 8*TILE, dx: 0, dy: 1, type: 'bat', alive: true});
+  if (Array.isArray(data.enemySpawns)) {
+    data.enemySpawns.forEach(spawn => {
+      entities.enemies.push({
+        x: spawn.x * TILE,
+        y: spawn.y * TILE,
+        dx: spawn.dx,
+        dy: spawn.dy,
+        type: spawn.type,
+        alive: true
+      });
+    });
   }
 
   const decorations = generateDecorations(map, entities, leoStart, miaStart, data.biome, idx);
 
   level = {
     data, map, entities, decorations,
-    leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0, shieldTimer: 0, shieldCooldown: 0 },
-    mia: { x: miaStart.x * TILE + 4, y: miaStart.y * TILE + 4, dir: 'down', moving: false, magicTimer: 0 },
+    leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, startX: leoStart.x * TILE + 4, startY: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0, shieldTimer: 0, shieldCooldown: 0, hitTimer: 0 },
+    mia: { x: miaStart.x * TILE + 4, y: miaStart.y * TILE + 4, startX: miaStart.x * TILE + 4, startY: miaStart.y * TILE + 4, dir: 'down', moving: false, magicTimer: 0, lightTimer: 0, magicCharges: MIA_MAGIC_MAX, magicCooldown: 0, hitTimer: 0 },
     symbolOrder: [],
     timer: data.timer || null,
     timeLeft: data.timer || null,
     won: false,
     hits: 0,
   };
+
+  if (level.entities.boss && data.bossHp) {
+    level.entities.boss.hp = data.bossHp;
+  }
 
   // Mettre à jour le panneau gauche avec les objectifs du niveau
   updateHintsPanel(data, idx);
@@ -866,6 +1257,13 @@ function updateHintsPanel(data, idx) {
   if (!nameEl || !stepsEl) return;
   nameEl.textContent = data.name;
 
+  if (Array.isArray(data.steps) && data.steps.length) {
+    stepsEl.innerHTML = data.steps.map((text, i) =>
+      `<div class="hint-step"><span class="step-num">${i+1}</span><span>${text}</span></div>`
+    ).join('');
+    return;
+  }
+
   // Générer les étapes selon le contenu du niveau
   const hasKey    = data.map.some(r => r.includes('K'));
   const hasDoor   = data.map.some(r => r.includes('D'));
@@ -873,16 +1271,33 @@ function updateHintsPanel(data, idx) {
   const hasGate   = data.map.some(r => r.includes('G'));
   const hasSpike  = data.map.some(r => r.includes('X'));
   const hasHidden = data.map.some(r => r.includes('H'));
-  const hasEnemy  = idx === 6;
+  const hasWeak   = data.map.some(r => r.includes('*'));
+  const hasTorch  = data.map.some(r => r.includes('t'));
+  const hasOrb    = data.map.some(r => r.includes('o'));
+  const hasDual   = data.map.some(r => r.includes('1') || r.includes('2'));
+  const hasOrder  = data.map.some(r => r.includes('a') || r.includes('b') || r.includes('c'));
+  const hasTimer  = Boolean(data.timer);
+  const hasBoss   = Boolean(data.boss);
+  const hasEnemy  = Boolean(data.enemySpawns && data.enemySpawns.length);
 
   const steps = [];
-  if (hasKey)    steps.push({ icon: '🗝', text: 'Léo : trouve et ramasse la clé' });
+  if (hasKey)    steps.push({ icon: '🗝', text: idx >= 4 ? 'Mia peut aller chercher la clé pour Léo grâce à sa magie' : 'Léo : trouve et ramasse la clé' });
   if (hasDoor)   steps.push({ icon: '🚪', text: 'Léo : marche vers la porte pour l\'ouvrir' });
   if (hasSwitch) steps.push({ icon: '🔘', text: 'Mia : pose-toi sur l\'interrupteur pour ouvrir la grille' });
   if (hasGate)   steps.push({ icon: '🚧', text: 'La grille s\'ouvre quand l\'interrupteur est activé' });
   if (hasSpike)  steps.push({ icon: '⚠️', text: 'Léo : utilise l\'épée (Shift) pour détruire les pics' });
   if (hasHidden) steps.push({ icon: '👀', text: 'Mia : appuie sur F près d\'un mur pour révéler les passages cachés' });
-  if (hasEnemy)  steps.push({ icon: '👹', text: 'Léo : frappe les ennemis avec l\'épée (Shift)' });
+  if (idx >= 4)  steps.push({ icon: '🪄', text: 'Mia : appuie sur F contre un mur pour l\'enchanter et le traverser seule' });
+  steps.push({ icon: '✨', text: 'Mia a 3 magies, puis elle doit attendre la récupération' });
+  if (hasWeak)   steps.push({ icon: '🧱', text: 'Léo : brise les murs fissurés en fonçant dedans' });
+  if (data.biome === 'dark') steps.push({ icon: '💡', text: 'Dans les profondeurs, Mia peut libérer une grande lumière temporaire avec F' });
+  if (hasTorch)  steps.push({ icon: '🔥', text: 'Récupère la torche pour mieux lire les profondeurs' });
+  if (hasOrb)    steps.push({ icon: '🔮', text: 'Mia : récupère l\'orbe pour révéler tous les passages cachés' });
+  if (hasDual)   steps.push({ icon: '🤝', text: 'Les deux héros doivent tenir les plaques 1 et 2 au bon moment' });
+  if (hasOrder)  steps.push({ icon: '🔤', text: 'Respecte l\'ordre A, B, C pour ouvrir le passage' });
+  if (hasEnemy)  steps.push({ icon: '👹', text: 'Léo protège Mia au contact pendant que Mia repousse les monstres avec sa magie' });
+  if (hasBoss)   steps.push({ icon: '👑', text: 'Léo doit vaincre le Gardien avant la récupération du cristal' });
+  if (hasTimer)  steps.push({ icon: '⏱️', text: 'Le temps est limité : coordonne les deux héros sans détour' });
   steps.push({ icon: '💎', text: 'Les deux héros doivent se retrouver sur le cristal pour finir !' });
 
   stepsEl.innerHTML = steps.map((s, i) =>
@@ -931,6 +1346,7 @@ function isSolid(tx, ty, who) {
   if (ty < 0 || ty >= level.map.length || tx < 0 || tx >= level.map[0].length) return true;
   const t = level.map[ty][tx];
   if (t === T.WALL) return true;
+  if (t === T.MIA_WALL) return who !== 'mia';
   if (t === T.HIDDEN) {
     const h = level.entities.hidden.find(h => h.x === tx && h.y === ty);
     // Mia can see/pass when she's the active char (reveals path)
@@ -1044,14 +1460,116 @@ function interactFor(who) {
 
   // Hidden (Mia révèle les passages cachés)
   if (who === 'mia') {
+    if (!miaCanCast()) return;
+    let usedMagic = false;
     const h = level.entities.hidden.find(h => h.x === tx && h.y === ty);
     if (h && !h.revealed) {
       h.revealed = true;
       showMsg("Passage révélé !");
-      SFX.magic();
-      level.mia.magicTimer = 30;
+      usedMagic = true;
+    }
+    if (!usedMagic) {
+      const targetTile = level.map[ty] && level.map[ty][tx];
+      const phaseWall = level.entities.phaseWalls.find(w => w.x === tx && w.y === ty);
+      if (targetTile === T.WALL || phaseWall) {
+        usedMagic = enchantWallForMia(tx, ty);
+      }
+    }
+    if (!usedMagic) usedMagic = miaCast(tx, ty, fx, fy);
+
+    if (level.data.biome === 'dark') {
+      activateMiaLight(usedMagic);
+      spendMiaMagic();
       return;
     }
+    if (usedMagic) {
+      SFX.magic();
+      level.mia.magicTimer = 30;
+      spendMiaMagic();
+    }
+  }
+}
+
+function miaCanCast() {
+  if (level.mia.magicCharges > 0) return true;
+  const secs = Math.max(1, Math.ceil(level.mia.magicCooldown / 60));
+  showMsg(`Magie épuisée ! Attends ${secs}s.`);
+  return false;
+}
+
+function spendMiaMagic() {
+  if (level.mia.magicCharges <= 0) return false;
+  level.mia.magicCharges--;
+  if (level.mia.magicCharges === 0) {
+    level.mia.magicCooldown = MIA_MAGIC_COOLDOWN;
+    showMsg("Mia a utilisé ses 3 magies ! Récupération en cours.");
+  }
+  return true;
+}
+
+function enchantWallForMia(tx, ty) {
+  if (!level.map[ty] || typeof level.map[ty][tx] === 'undefined') return false;
+  if (level.map[ty][tx] !== T.WALL && level.map[ty][tx] !== T.MIA_WALL) return false;
+  let wall = level.entities.phaseWalls.find(w => w.x === tx && w.y === ty);
+  if (!wall) {
+    wall = { x: tx, y: ty, timer: 8 * 60 };
+    level.entities.phaseWalls.push(wall);
+  } else {
+    wall.timer = 8 * 60;
+  }
+  level.map[ty][tx] = T.MIA_WALL;
+  showMsg("Mia enchante le mur ! Elle seule peut passer.");
+  return true;
+}
+
+function miaCast(tx, ty, fx, fy) {
+  const dirs = (fx || fy) ? [{ fx, fy }] : [
+    { fx: 1, fy: 0 }, { fx: -1, fy: 0 }, { fx: 0, fy: 1 }, { fx: 0, fy: -1 }
+  ];
+
+  for (const dir of dirs) {
+    for (let step = 1; step <= 3; step++) {
+      const sx = tx + dir.fx * (step - 1);
+      const sy = ty + dir.fy * (step - 1);
+      const enemy = level.entities.enemies.find(e =>
+        e.alive &&
+        Math.floor((e.x + TILE / 2) / TILE) === sx &&
+        Math.floor((e.y + TILE / 2) / TILE) === sy
+      );
+      if (enemy) {
+        enemy.alive = false;
+        showMsg("Mia repousse un monstre avec sa magie !");
+        return true;
+      }
+
+      if (level.entities.boss && level.entities.boss.hp > 0) {
+        const b = level.entities.boss;
+        const bossTx = Math.floor(b.x / TILE);
+        const bossTy = Math.floor(b.y / TILE);
+        if (bossTx === sx && bossTy === sy) {
+          b.cool = Math.max(b.cool, 45);
+          b.x -= dir.fx * 18;
+          b.y -= dir.fy * 18;
+          showMsg("La magie de Mia repousse le Gardien, mais Léo doit le blesser.");
+          return true;
+        }
+      }
+
+      if (level.map[sy] && (level.map[sy][sx] === T.WALL || level.map[sy][sx] === T.GATE || level.map[sy][sx] === T.DOOR)) {
+        break;
+      }
+    }
+  }
+  return false;
+}
+
+function activateMiaLight(usedMagic) {
+  const refreshed = level.mia.lightTimer > 45;
+  level.mia.lightTimer = Math.max(level.mia.lightTimer, 4 * 60);
+  level.mia.magicTimer = 30;
+  SFX.magic();
+  if (!usedMagic && !refreshed) {
+    showMsg("Mia illumine les profondeurs !");
   }
 }
 
@@ -1115,7 +1633,7 @@ function showMsg(m) {
 function updateGame() {
   if (state !== STATE.PLAYING) return;
 
-  // --- LÉO (P1) : Flèches + Entrée (interagir) + ShiftRight (attaquer) ---
+  // --- LÉO (P1) : Flèches + Entrée (interagir) + ShiftRight/Space (attaquer) ---
   let dx1 = 0, dy1 = 0;
   if (keys['ArrowLeft']) dx1 = -1;
   else if (keys['ArrowRight']) dx1 = 1;
@@ -1123,16 +1641,23 @@ function updateGame() {
   else if (keys['ArrowDown']) dy1 = 1;
   tryMove(level.leo, dx1, dy1, 'leo');
   if (consumePress('Enter')) interactFor('leo');
-  if (consumePress('ShiftRight')) attack();
+  if (consumePress('ShiftRight') || consumePress('Space')) attack();
 
-  // Bouclier de Léo (Ctrl Droit)
-  if (consumePress('ControlRight') && level.leo.shieldCooldown <= 0) {
+  // Bouclier de Léo (Alt Droit)
+  const leoShieldHeld = !!keys['AltRight'];
+  if (leoShieldHeld && level.leo.shieldCooldown <= 0 && level.leo.shieldTimer === 0) {
     level.leo.shieldTimer = 50;
     level.leo.shieldCooldown = 110;
+    showMsg('🛡 Bouclier de Léo activé !');
     SFX.shield();
   }
-  if (level.leo.shieldTimer > 0) level.leo.shieldTimer--;
-  else if (level.leo.shieldCooldown > 0) level.leo.shieldCooldown--;
+  if (leoShieldHeld && level.leo.shieldCooldown > 0) {
+    level.leo.shieldTimer = 2;
+  } else if (level.leo.shieldTimer > 0) {
+    level.leo.shieldTimer--;
+  }
+  if (!leoShieldHeld && level.leo.shieldCooldown > 0) level.leo.shieldCooldown--;
+  if (level.leo.hitTimer > 0) level.leo.hitTimer--;
 
   // --- MIA (P2) : ZQSD + F ou Espace (magie / interagir) ---
   let dx2 = 0, dy2 = 0;
@@ -1141,7 +1666,27 @@ function updateGame() {
   if (keys['KeyZ'] || keys['KeyW']) dy2 = -1;
   else if (keys['KeyS']) dy2 = 1;
   tryMove(level.mia, dx2, dy2, 'mia');
-  if (consumePress('KeyF') || consumePress('KeyE') || consumePress('Space')) { level.mia.magicTimer = 30; SFX.magic(); interactFor('mia'); }
+  if (consumePress('KeyF') || consumePress('KeyE')) interactFor('mia');
+  if (level.mia.lightTimer > 0) level.mia.lightTimer--;
+  if (level.mia.hitTimer > 0) level.mia.hitTimer--;
+  if (level.mia.magicCharges === 0 && level.mia.magicCooldown > 0) {
+    level.mia.magicCooldown--;
+    if (level.mia.magicCooldown === 0) {
+      level.mia.magicCharges = MIA_MAGIC_MAX;
+      showMsg("La magie de Mia est rechargée !");
+    }
+  }
+
+  level.entities.phaseWalls = level.entities.phaseWalls.filter(w => {
+    const miaTx = Math.floor((level.mia.x + TILE/2) / TILE);
+    const miaTy = Math.floor((level.mia.y + TILE/2) / TILE);
+    if (w.timer > 0) w.timer--;
+    if (w.timer <= 0 && !(miaTx === w.x && miaTy === w.y)) {
+      level.map[w.y][w.x] = T.WALL;
+      return false;
+    }
+    return true;
+  });
 
   // Timer
   if (level.timeLeft !== null) {
@@ -1231,6 +1776,7 @@ function updateGame() {
     // Touch either player
     for (const pch of [level.leo, level.mia]) {
       const pWho = pch === level.leo ? 'leo' : 'mia';
+      if (pch.hitTimer > 0) continue;
       if (Math.abs(e.x - pch.x) < TILE-10 && Math.abs(e.y - pch.y) < TILE-10) {
         if (pWho === 'leo' && level.leo.shieldTimer > 0) {
           showMsg('🛡 Bouclier ! Ennemi repoussé !');
@@ -1238,7 +1784,7 @@ function updateGame() {
           e.dx *= -1; e.dy *= -1;
         } else {
           respawn(pWho);
-          showMsg((pWho === 'leo' ? 'Léo' : 'Mia') + ' touché par un ennemi !');
+          showMsg((pWho === 'leo' ? 'Léo' : 'Mia') + ' est attaqué par un monstre ! Retour au départ.');
           SFX.hurt();
         }
         break;
@@ -1267,7 +1813,7 @@ function updateGame() {
             b.x = 9*TILE+20; b.y = 6*TILE+20;
           } else {
             respawn(pWho);
-            b.x = 9*TILE+20; b.y = 6*TILE+20; b.hp = Math.min(5, b.hp+1);
+            b.x = 9*TILE+20; b.y = 6*TILE+20; b.hp = Math.min(level.data.bossHp || 5, b.hp+1);
             showMsg('Le Gardien vous a frappés !');
             SFX.hurt();
           }
@@ -1297,7 +1843,7 @@ function updateGame() {
         return;
       }
       c.taken = true;
-      crystals++;
+      crystals = Math.min(crystals + 1, LEVELS.length);
       state = STATE.LEVEL_COMPLETE;
       showMsg("Cristal récupéré ! Niveau terminé ! 🎉");
       SFX.crystal();
@@ -1354,12 +1900,15 @@ function updateGame() {
 }
 
 function respawn(who) {
-  const data = level.data;
-  for (let y = 0; y < data.map.length; y++) {
-    for (let x = 0; x < data.map[y].length; x++) {
-      if (who === 'leo'  && data.map[y][x] === 'L') { level.leo.x = x*TILE+4; level.leo.y = y*TILE+4; }
-      if (who === 'mia'  && data.map[y][x] === 'M') { level.mia.x = x*TILE+4; level.mia.y = y*TILE+4; }
-    }
+  if (who === 'leo') {
+    level.leo.x = level.leo.startX;
+    level.leo.y = level.leo.startY;
+    level.leo.hitTimer = 45;
+  }
+  if (who === 'mia') {
+    level.mia.x = level.mia.startX;
+    level.mia.y = level.mia.startY;
+    level.mia.hitTimer = 45;
   }
 }
 
@@ -1459,6 +2008,17 @@ function drawTile(t, px, py, biome, x, y) {
       ctx.fillStyle = `rgba(180,140,255,${0.05 + Math.abs(Math.sin(tt))*0.10})`;
       ctx.fillRect(px+4, py+4, TILE-8, TILE-8);
     }
+  } else if (t === T.MIA_WALL) {
+    ctx.fillStyle = c.wall;
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = c.wallTop;
+    ctx.fillRect(px, py, TILE, 6);
+    const pulse = 0.45 + 0.35 * Math.sin(Date.now() / 180 + x + y);
+    ctx.strokeStyle = `rgba(240,160,255,${pulse})`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(px+2, py+2, TILE-4, TILE-4);
+    ctx.fillStyle = `rgba(220,170,255,${0.12 + pulse * 0.15})`;
+    ctx.fillRect(px+6, py+6, TILE-12, TILE-12);
   } else if (t === T.WEAK_WALL) {
     const w = level.entities.weakWalls.find(w => w.x === x && w.y === y);
     if (w && !w.broken) {
@@ -1503,6 +2063,25 @@ function drawTile(t, px, py, biome, x, y) {
   } else if (t === T.DARK_FLOOR) {
     ctx.fillStyle = '#15152a';
     ctx.fillRect(px, py, TILE, TILE);
+  }
+}
+
+function levelBoardOffset() {
+  const mapWidth = level.map[0].length * TILE;
+  const mapHeight = level.map.length * TILE;
+  return {
+    x: Math.max(0, Math.floor((W - mapWidth) / 2)),
+    y: Math.max(0, Math.floor((H - mapHeight) / 2)),
+  };
+}
+
+function drawGameBackdrop(biome) {
+  const c = biomeColors(biome);
+  for (let y = 0; y < H; y += TILE) {
+    for (let x = 0; x < W; x += TILE) {
+      ctx.fillStyle = (((x / TILE) + (y / TILE)) % 2 === 0) ? c.floor : c.floor2;
+      ctx.fillRect(x, y, TILE, TILE);
+    }
   }
 }
 
@@ -1850,7 +2429,7 @@ function drawEntities(biome) {
     ctx.fillStyle = '#400';
     ctx.fillRect(b.x-20, b.y-28, 40, 4);
     ctx.fillStyle = '#f33';
-    ctx.fillRect(b.x-20, b.y-28, 40*(b.hp/5), 4);
+    ctx.fillRect(b.x-20, b.y-28, 40*(b.hp/(level.data.bossHp || 5)), 4);
   }
 }
 
@@ -1882,17 +2461,91 @@ function drawCharacter(ch, isLeo, active) {
 
   // Sword swing for Léo
   if (isLeo && ch.attackTimer > 0) {
-    ctx.fillStyle = '#e8e8e8';
-    ctx.strokeStyle = '#999';
-    ctx.lineWidth = 1;
-    let r;
-    if (ch.dir === 'right') r = [px+TILE-4, py+TILE/2-2, 18, 4];
-    else if (ch.dir === 'left') r = [px-14, py+TILE/2-2, 18, 4];
-    else if (ch.dir === 'up') r = [px+TILE/2-6, py-14, 4, 18];
-    else r = [px+TILE/2-6, py+TILE-4, 4, 18];
-    ctx.fillRect(...r);
-    ctx.strokeRect(...r);
+    ctx.save();
+    ctx.fillStyle = '#f2f4ff';
+    ctx.strokeStyle = '#8f98b8';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(255,255,255,0.45)';
+    ctx.shadowBlur = 8;
+    if (ch.dir === 'right') {
+      ctx.fillRect(px+TILE-1, py+TILE/2-2, 20, 4);
+      ctx.strokeRect(px+TILE-1, py+TILE/2-2, 20, 4);
+      ctx.fillStyle = '#d7aa4a';
+      ctx.fillRect(px+TILE-5, py+TILE/2-4, 6, 8);
+      ctx.fillStyle = '#ffef9a';
+      ctx.beginPath();
+      ctx.moveTo(px+TILE+19, py+TILE/2-2);
+      ctx.lineTo(px+TILE+26, py+TILE/2);
+      ctx.lineTo(px+TILE+19, py+TILE/2+2);
+      ctx.closePath();
+      ctx.fill();
+    } else if (ch.dir === 'left') {
+      ctx.fillRect(px-19, py+TILE/2-2, 20, 4);
+      ctx.strokeRect(px-19, py+TILE/2-2, 20, 4);
+      ctx.fillStyle = '#d7aa4a';
+      ctx.fillRect(px-1, py+TILE/2-4, 6, 8);
+      ctx.fillStyle = '#ffef9a';
+      ctx.beginPath();
+      ctx.moveTo(px-19, py+TILE/2-2);
+      ctx.lineTo(px-26, py+TILE/2);
+      ctx.lineTo(px-19, py+TILE/2+2);
+      ctx.closePath();
+      ctx.fill();
+    } else if (ch.dir === 'up') {
+      ctx.fillRect(px+TILE/2-6, py-18, 4, 20);
+      ctx.strokeRect(px+TILE/2-6, py-18, 4, 20);
+      ctx.fillStyle = '#d7aa4a';
+      ctx.fillRect(px+TILE/2-8, py+1, 8, 6);
+      ctx.fillStyle = '#ffef9a';
+      ctx.beginPath();
+      ctx.moveTo(px+TILE/2-6, py-18);
+      ctx.lineTo(px+TILE/2-4, py-25);
+      ctx.lineTo(px+TILE/2-2, py-18);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(px+TILE/2-6, py+TILE-1, 4, 20);
+      ctx.strokeRect(px+TILE/2-6, py+TILE-1, 4, 20);
+      ctx.fillStyle = '#d7aa4a';
+      ctx.fillRect(px+TILE/2-8, py+TILE-5, 8, 6);
+      ctx.fillStyle = '#ffef9a';
+      ctx.beginPath();
+      ctx.moveTo(px+TILE/2-6, py+TILE+19);
+      ctx.lineTo(px+TILE/2-4, py+TILE+26);
+      ctx.lineTo(px+TILE/2-2, py+TILE+19);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
     ch.attackTimer--;
+  }
+
+  if (isLeo && ch.shieldTimer > 0) {
+    const shieldSide = ch.dir === 'left' ? -1 : 1;
+    const shieldX = ch.dir === 'left' ? px - 11 : px + TILE - 1;
+    const shieldY = py + 10;
+    ctx.save();
+    ctx.fillStyle = 'rgba(90,140,255,0.28)';
+    ctx.beginPath();
+    ctx.arc(px+TILE/2-4, py+TILE/2, 22 + Math.sin(Date.now()/80)*1.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#5f86d8';
+    ctx.strokeStyle = '#d9edff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(shieldX, shieldY);
+    ctx.lineTo(shieldX + 10 * shieldSide, shieldY + 2);
+    ctx.lineTo(shieldX + 10 * shieldSide, shieldY + 16);
+    ctx.lineTo(shieldX, shieldY + 22);
+    ctx.lineTo(shieldX - 4 * shieldSide, shieldY + 16);
+    ctx.lineTo(shieldX - 4 * shieldSide, shieldY + 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#f7e38c';
+    ctx.fillRect(shieldX - 1, shieldY + 5, 2, 10);
+    ctx.fillRect(shieldX - 4, shieldY + 9, 8, 2);
+    ctx.restore();
   }
 
   // Magic dust for Mia
@@ -1936,11 +2589,32 @@ function drawCharacter(ch, isLeo, active) {
     ctx.arc(px+TILE/2-4, py+TILE-4, 16 + Math.sin(t)*2, Math.PI*0.1, Math.PI*0.9);
     ctx.stroke();
   }
+
+  if (!isLeo && level.mia.magicCharges === 0 && level.mia.magicCooldown > 0) {
+    const barW = 26;
+    const barH = 5;
+    const barX = px + TILE/2 - 4 - barW/2;
+    const barY = py + TILE + 3;
+    const progress = 1 - (level.mia.magicCooldown / MIA_MAGIC_COOLDOWN);
+
+    ctx.fillStyle = 'rgba(20,10,30,0.85)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = 'rgba(220,180,255,0.9)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+    ctx.fillStyle = '#d080ff';
+    ctx.fillRect(barX + 1, barY + 1, Math.max(0, (barW - 2) * progress), barH - 2);
+  }
 }
 
 function renderGame() {
   const biome = level.data.biome;
+  const boardOffset = levelBoardOffset();
+  drawGameBackdrop(biome);
+
   // Tiles
+  ctx.save();
+  ctx.translate(boardOffset.x, boardOffset.y);
   for (let y = 0; y < level.map.length; y++) {
     for (let x = 0; x < level.map[y].length; x++) {
       drawTile(level.map[y][x], x*TILE, y*TILE, biome, x, y);
@@ -1956,26 +2630,44 @@ function renderGame() {
   ];
   figures.sort((a,b) => a.y - b.y);
   figures.forEach(f => f.draw());
+  ctx.restore();
 
   // Darkness overlay for level 8 — lit around BOTH characters
   if (biome === 'dark') {
     const torchTaken = level.entities.torches.every(t => t.taken);
-    const radius = torchTaken ? 160 : 80;
+    const miaLightActive = level.mia.lightTimer > 0;
+    const baseRadius = torchTaken ? 240 : 180;
+    const radius = miaLightActive ? 340 + Math.sin(Date.now() / 120) * 12 : baseRadius;
     ctx.save();
     // Draw full dark
-    ctx.fillStyle = 'rgba(0,0,0,0.92)';
+    ctx.fillStyle = 'rgba(0,0,0,0.62)';
     ctx.fillRect(0, 0, W, H);
     // Punch light through with destination-out
     ctx.globalCompositeOperation = 'destination-out';
     for (const ch of [level.leo, level.mia]) {
-      const cx = ch.x + TILE/2 - 4, cy = ch.y + TILE/2;
-      const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, radius);
+      const cx = boardOffset.x + ch.x + TILE/2 - 4;
+      const cy = boardOffset.y + ch.y + TILE/2;
+      const lightRadius = (ch === level.mia && miaLightActive) ? radius : baseRadius;
+      const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, lightRadius);
       grad.addColorStop(0, 'rgba(0,0,0,1)');
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
     }
     ctx.restore();
+
+    if (miaLightActive) {
+      const cx = boardOffset.x + level.mia.x + TILE/2 - 4;
+      const cy = boardOffset.y + level.mia.y + TILE/2;
+      const halo = ctx.createRadialGradient(cx, cy, 20, cx, cy, radius);
+      halo.addColorStop(0, 'rgba(255,245,210,0.2)');
+      halo.addColorStop(0.55, 'rgba(255,245,210,0.12)');
+      halo.addColorStop(1, 'rgba(255,245,210,0)');
+      ctx.save();
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
   }
 
   // Flash rouge si interrupteur en compte à rebours critique (≤5s)
@@ -2002,13 +2694,15 @@ function renderGame() {
   ctx.fillText(level.data.name, 8, 18);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#fff';
-  let hud = `💎 ${crystals}/10  🗝 ${level.leo.hasKey}  P1 Léo · P2 Mia`;
+  let hud = `💎 ${crystals}/${LEVELS.length}  🗝 ${level.leo.hasKey}  ✨ ${level.mia.magicCharges}/${MIA_MAGIC_MAX}  P1 Léo · P2 Mia`;
+  if (level.mia.magicCharges === 0 && level.mia.magicCooldown > 0) hud += `  🔄 ${Math.ceil(level.mia.magicCooldown / 60)}s`;
   if (level.timeLeft !== null) hud += `  ⏱ ${Math.max(0, Math.ceil(level.timeLeft))}s`;
   ctx.fillText(hud, W-8, 18);
 }
 
 // ============ MENU ============
-const MENU_ITEMS = ['Jouer', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
+const INTRO_VIDEO_URL = 'https://www.youtube.com/watch?v=Q75B_D2FA7o';
+const MENU_ITEMS = ['Jouer', 'Voir la vidéo du jeu', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
 
 function renderMenu() {
   ctx.clearRect(0, 0, W, H);
@@ -2029,32 +2723,34 @@ function renderMenu() {
   ctx.fillStyle = 'rgba(5, 4, 16, 0.35)';
   ctx.fillRect(0, 0, W, H);
 
-  // Decorative characters
-  ctx.save();
-  ctx.translate(W/2 - 160, 260);
-  ctx.scale(2.5, 2.5);
-  drawCharacter({x:0, y:0, dir:'down', moving:true, attackTimer:0}, true, false);
-  ctx.restore();
-  ctx.save();
-  ctx.translate(W/2 + 100, 260);
-  ctx.scale(2.5, 2.5);
-  drawCharacter({x:0, y:0, dir:'down', moving:true}, false, false);
-  ctx.restore();
-
-  // Menu items
+  ctx.textAlign = 'center';
   ctx.font = 'bold 22px monospace';
+  const menuSpacing = 36;
+  const menuBlockHeight = (MENU_ITEMS.length - 1) * menuSpacing;
+  const menuStartY = 220;
+  const menuCenterY = menuStartY + menuBlockHeight / 2;
+  const panelWidth = 360;
+  const panelHeight = menuBlockHeight + 64;
+  const panelX = W / 2 - panelWidth / 2;
+  const panelY = menuCenterY - panelHeight / 2;
+
+  ctx.fillStyle = 'rgba(5, 4, 16, 0.6)';
+  ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+
   MENU_ITEMS.forEach((item, i) => {
-    const y = 420 + i * 36;
+    const y = menuStartY + i * menuSpacing;
+    ctx.fillStyle = '#fff';
     if (i === menuIndex) {
-      ctx.fillStyle = '#ffeb70';
       ctx.fillText('▶ ' + item + ' ◀', W/2, y);
     } else {
-      ctx.fillStyle = '#aaa';
       ctx.fillText(item, W/2, y);
     }
   });
 
-  ctx.fillStyle = '#666';
+  ctx.fillStyle = '#fff';
   ctx.font = '12px monospace';
   ctx.fillText('↑↓ pour naviguer · Entrée pour valider', W/2, H-20);
 }
@@ -2064,9 +2760,10 @@ function updateMenu() {
   if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = (menuIndex + 1) % MENU_ITEMS.length;
   if (consumePress('Enter') || consumePress('Space')) {
     if (menuIndex === 0) { currentLevel = 0; state = STATE.INTRO; }
-    else if (menuIndex === 1) state = STATE.LEVEL_SELECT;
-    else if (menuIndex === 2) { state = STATE.RULES; rulesScroll = 0; }
-    else if (menuIndex === 3) state = STATE.CREDITS;
+    else if (menuIndex === 1) window.open(INTRO_VIDEO_URL, '_blank', 'noopener,noreferrer');
+    else if (menuIndex === 2) state = STATE.LEVEL_SELECT;
+    else if (menuIndex === 3) { state = STATE.RULES; rulesScroll = 0; }
+    else if (menuIndex === 4) state = STATE.CREDITS;
   }
 }
 
@@ -2077,7 +2774,7 @@ const RULES_TEXT = [
   "L'HISTOIRE",
   "Au cœur d'un royaume magique, le Cristal du Savoir",
   "veillait sur l'équilibre du monde. Suite à une",
-  "explosion mystérieuse, l'artefact s'est brisé en 10",
+  "explosion mystérieuse, l'artefact s'est brisé en 15",
   "fragments dispersés dans des labyrinthes ancestraux.",
   "Léo et Mia doivent retrouver les morceaux et percer",
   "le secret de cette catastrophe.",
@@ -2100,6 +2797,8 @@ const RULES_TEXT = [
   "    Flèches ↑↓←→  Se déplacer",
   "    Entrée        Interagir (portes, interrupteurs)",
   "    Shift droit   Attaquer à l'épée",
+  "    Espace        Attaquer à l'épée",
+  "    Alt droit     Bouclier",
   "",
   "  JOUEUR 2 — Mia",
   "    Z Q S D       Se déplacer",
@@ -2116,7 +2815,7 @@ const RULES_TEXT = [
   "  ⚠ Pics — évite-les, ils renvoient au départ",
   "  📦 Blocs — Léo peut les pousser",
   "",
-  "LES 10 NIVEAUX",
+  "LES 15 NIVEAUX",
   "  1. Labyrinthe Vert — Apprentissage des bases",
   "  2. Portes Oubliées — Gestion des clés",
   "  3. Grotte des Pièges — Réflexes et timing",
@@ -2127,6 +2826,11 @@ const RULES_TEXT = [
   "  8. Profondeurs Noires — Vision limitée",
   "  9. Labyrinthe du Temps — Course contre la montre",
   " 10. Château du Cristal — Boss final",
+  " 11. Miroir des Ombres — Bonus difficile",
+  " 12. Citadelle Croisée — Bonus coopération",
+  " 13. Sceaux du Néant — Bonus magique",
+  " 14. Couloir des Héros — Bonus chrono",
+  " 15. Trône des Arcanes — Bonus ultime",
   "",
   "CONSEILS",
   "  • Observe avant de foncer.",
@@ -2197,8 +2901,7 @@ function renderCredits() {
     '',
     'LÉO & MIA — Le Labyrinthe Perdu',
     '',
-    'Game design : Praful',
-    'Code & pixel art : Claude',
+    'Créateur : Julien Animateur',
     '',
     'Inspiré des classiques SNES et GBA',
     '',
@@ -2225,32 +2928,32 @@ function renderLevelSelect() {
   ctx.fillText('SÉLECTION DE NIVEAU', W/2, 60);
   ctx.font = '14px monospace';
   ctx.fillStyle = '#c9a8ff';
-  ctx.fillText(`Cristaux récupérés : ${crystals} / 10`, W/2, 90);
+  ctx.fillText(`Cristaux récupérés : ${crystals} / ${LEVELS.length}`, W/2, 90);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < LEVELS.length; i++) {
     const col = i % 5, row = Math.floor(i / 5);
-    const px = 80 + col*140, py = 140 + row*180;
+    const px = 70 + col*130, py = 120 + row*150;
     const unlocked = i <= maxUnlocked;
     const selected = i === menuIndex;
     ctx.fillStyle = unlocked ? (selected ? '#6a4caf' : '#3a2a5f') : '#222';
-    ctx.fillRect(px, py, 120, 140);
+    ctx.fillRect(px, py, 110, 120);
     ctx.strokeStyle = selected ? '#ffeb70' : '#5a4a8a';
     ctx.lineWidth = selected ? 4 : 2;
-    ctx.strokeRect(px, py, 120, 140);
+    ctx.strokeRect(px, py, 110, 120);
     ctx.fillStyle = unlocked ? '#fff' : '#555';
-    ctx.font = 'bold 36px monospace';
-    ctx.fillText(String(i+1), px+60, py+60);
-    ctx.font = '11px monospace';
+    ctx.font = 'bold 30px monospace';
+    ctx.fillText(String(i+1), px+55, py+48);
+    ctx.font = '10px monospace';
     const name = LEVELS[i].name.split('—')[0].replace(/^\d+\.\s*/, '').trim();
-    ctx.fillText(name.slice(0, 14), px+60, py+90);
+    ctx.fillText(name.slice(0, 13), px+55, py+76);
     if (!unlocked) {
       ctx.fillStyle = '#ffeb70';
-      ctx.font = '20px monospace';
-      ctx.fillText('🔒', px+60, py+120);
+      ctx.font = '18px monospace';
+      ctx.fillText('🔒', px+55, py+103);
     } else if (i < maxUnlocked) {
       ctx.fillStyle = '#a0e8ff';
-      ctx.font = '20px monospace';
-      ctx.fillText('💎', px+60, py+120);
+      ctx.font = '18px monospace';
+      ctx.fillText('💎', px+55, py+103);
     }
   }
   ctx.fillStyle = '#c9a8ff';
@@ -2260,11 +2963,11 @@ function renderLevelSelect() {
 
 function updateLevelSelect() {
   if (consumePress('ArrowLeft') || consumePress('KeyA') || consumePress('KeyQ')) menuIndex = Math.max(0, menuIndex - 1);
-  if (consumePress('ArrowRight') || consumePress('KeyD')) menuIndex = Math.min(9, menuIndex + 1);
+  if (consumePress('ArrowRight') || consumePress('KeyD')) menuIndex = Math.min(LEVELS.length - 1, menuIndex + 1);
   if (consumePress('ArrowUp') || consumePress('KeyW') || consumePress('KeyZ')) menuIndex = Math.max(0, menuIndex - 5);
-  if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = Math.min(9, menuIndex + 5);
+  if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = Math.min(LEVELS.length - 1, menuIndex + 5);
   if (consumePress('Enter') || consumePress('Space')) {
-    if (menuIndex <= 9) {
+    if (menuIndex <= LEVELS.length - 1) {
       currentLevel = menuIndex;
       state = STATE.INTRO;
     }
@@ -2305,8 +3008,8 @@ function renderLevelComplete() {
   ctx.fillText('💎 CRISTAL RÉCUPÉRÉ ! 💎', W/2, H/2 - 40);
   ctx.fillStyle = '#fff';
   ctx.font = '18px monospace';
-  ctx.fillText(`Cristaux : ${crystals} / 10`, W/2, H/2);
-  if (currentLevel < 9) {
+  ctx.fillText(`Cristaux : ${crystals} / ${LEVELS.length}`, W/2, H/2);
+  if (currentLevel < LEVELS.length - 1) {
     ctx.fillText('Entrée → niveau suivant', W/2, H/2 + 50);
     ctx.fillText('Échap → menu', W/2, H/2 + 80);
     if (consumePress('Enter') || consumePress('Space')) {
@@ -2316,8 +3019,8 @@ function renderLevelComplete() {
   } else {
     ctx.fillStyle = '#a0e8ff';
     ctx.font = 'bold 22px monospace';
-    ctx.fillText('Tu as restauré le Cristal du Savoir !', W/2, H/2 + 50);
-    ctx.fillText('Le royaume est sauvé !', W/2, H/2 + 80);
+    ctx.fillText('Tu as terminé tous les niveaux bonus !', W/2, H/2 + 50);
+    ctx.fillText('Léo et Mia ont tout maîtrisé !', W/2, H/2 + 80);
     ctx.fillStyle = '#fff';
     ctx.font = '14px monospace';
     ctx.fillText('Entrée pour revenir au menu', W/2, H/2 + 120);
