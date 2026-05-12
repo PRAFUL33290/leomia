@@ -253,6 +253,7 @@ musicGame.loop = true;
 musicGame.volume = 0.5;
 
 let currentTrack = null;
+let trackPausedByVisibility = false;
 function setMusic(track) {
   if (currentTrack === track) return;
   if (currentTrack) { currentTrack.pause(); currentTrack.currentTime = 0; }
@@ -264,6 +265,23 @@ function resumeCurrentTrack() {
   if (!currentTrack) return;
   currentTrack.play().catch(() => {});
 }
+
+function pauseCurrentTrackForVisibility() {
+  if (!currentTrack || currentTrack.paused) return;
+  trackPausedByVisibility = true;
+  currentTrack.pause();
+}
+
+function resumeCurrentTrackFromVisibility() {
+  if (!currentTrack || !trackPausedByVisibility) return;
+  trackPausedByVisibility = false;
+  currentTrack.play().catch(() => {});
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseCurrentTrackForVisibility();
+  else resumeCurrentTrackFromVisibility();
+});
 
 // ============ SOUND FX ============
 const _ac = new (window.AudioContext || window.webkitAudioContext)();
