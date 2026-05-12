@@ -12,10 +12,10 @@
     color: #fff;
     font-family: 'Courier New', monospace;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
+    height: 100vh;
     overflow: hidden;
     image-rendering: pixelated;
   }
@@ -33,38 +33,453 @@
     z-index: 0;
   }
   body.start-screen-bg::before { opacity: 0.22; }
+  body.menu-mode::before { opacity: 1 !important; }
   body > * { position: relative; z-index: 1; }
+  #game-area {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    padding: 0;
+  }
   #game {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1100 / 660;
+    max-height: calc(100vh - 46px);
     border: 4px solid #6a4caf;
     background: transparent;
     image-rendering: pixelated;
     box-shadow: 0 0 30px rgba(150, 100, 255, 0.5);
+    flex-shrink: 0;
   }
-  #ui {
-    margin-top: 10px;
+  #game-msg {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    color: #fff;
+    background: rgba(0,0,0,0.72);
+    border-top: 1px solid #6a4caf;
+    padding: 0 16px;
     text-align: center;
-    font-size: 14px;
-    color: #c9a8ff;
+    letter-spacing: 0.5px;
+    transition: opacity 0.3s;
   }
-  .key { background: #3a2a5f; padding: 2px 6px; border-radius: 3px; color: #ffeb70; }
-  h1 { color: #ffeb70; text-shadow: 2px 2px #6a4caf; margin-bottom: 10px; }
+  #game-msg.hint { color: #c9a8ff; font-size: 13px; }
+  h1 { color: #ffeb70; text-shadow: 2px 2px #6a4caf; margin-bottom: 10px; font-size: 18px; }
+  /* ---- Masquer les volets sur le menu ---- */
+  body.menu-mode #hints-panel,
+  body.menu-mode #commands-panel { display: none !important; }
+  body.menu-mode #game {
+    aspect-ratio: unset;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border: none;
+    box-shadow: none;
+  }
+  body.menu-mode #game-area {
+    justify-content: stretch;
+  }
+  body.menu-mode #game-msg { display: none; }
+  /* ---- Panneau de commandes ---- */
+  #commands-panel {
+    flex: 0 0 220px;
+    background: rgba(10,5,30,0.95);
+    border-left: 3px solid #6a4caf;
+    padding: 24px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+    height: 100vh;
+    box-shadow: -4px 0 20px rgba(100,60,200,0.3);
+  }
+  /* ---- Panneau d'aide gauche ---- */
+  #hints-panel {
+    flex: 0 0 220px;
+    background: rgba(5,15,10,0.95);
+    border-right: 3px solid #3a8a5a;
+    padding: 24px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    height: 100vh;
+    box-shadow: 4px 0 20px rgba(30,120,60,0.3);
+  }
+  #hints-panel .hint-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #ffffff;
+    border-bottom: 2px solid #3a8a5a;
+    padding-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  #hints-panel .hint-level {
+    font-size: 15px;
+    color: #ffeb70;
+    font-weight: bold;
+    line-height: 1.5;
+  }
+  #hints-panel .hint-text {
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 1.8;
+  }
+  #hints-panel .hint-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 1.6;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(60,140,90,0.3);
+  }
+  #hints-panel .hint-step .step-num {
+    flex-shrink: 0;
+    background: #1a5a3a;
+    color: #70e0a0;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  #hints-panel .general-tips {
+    margin-top: auto;
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 1.9;
+  }
+  #hints-panel .general-tips b { color: #ffffff; }
+  .cmd-player { display: flex; flex-direction: column; gap: 10px; }
+  .cmd-title {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid;
+    margin-bottom: 4px;
+  }
+  .cmd-title.leo  { color: #90e090; border-color: #90e090; }
+  .cmd-title.mia  { color: #d090d0; border-color: #d090d0; }
+  .cmd-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: #ffffff;
+  }
+  .cmd-row .action { flex: 1; color: #ffffff; }
+  .key {
+    background: #3a2a5f;
+    padding: 3px 7px;
+    border-radius: 4px;
+    color: #ffeb70;
+    font-size: 14px;
+    border: 1px solid #6a4caf;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
-  <h1>✨ Léo & Mia – Le Labyrinthe Perdu ✨</h1>
-  <canvas id="game" width="800" height="600"></canvas>
-  <div id="ui">
-    <b style="color:#90d090">P1 Léo :</b>
-    <span class="key">Flèches</span> bouger ·
-    <span class="key">Entrée</span> interagir ·
-    <span class="key">Shift droit</span> épée &nbsp;|&nbsp;
-    <b style="color:#d090d0">P2 Mia :</b>
-    <span class="key">ZQSD</span> bouger ·
-    <span class="key">F</span> magie ·
-    <span class="key">Échap</span> menu
+  <!-- PANNEAU GAUCHE : Objectifs & Conseils du niveau -->
+  <aside id="hints-panel">
+    <div class="hint-title">📋 Objectifs</div>
+    <div id="hint-level-name" class="hint-level">—</div>
+    <div id="hint-steps" class="hint-text"></div>
+    <div class="general-tips">
+      <div style="color:#ffffff;font-weight:bold;margin-bottom:6px;font-size:16px;">💡 À savoir</div>
+      <b>Léo</b> casse les blocs fissurés en marchant dedans.<br>
+      <b>Léo</b> frappe les ennemis et les pics avec l'épée.<br>
+      <b>Léo seul</b> peut ouvrir les portes 🗝.<br>
+      <b>Mia</b> révèle les passages cachés (touche F).<br>
+      <b>Mia</b> se pose sur l'interrupteur pour ouvrir la grille.<br>
+      Les <b>deux héros</b> doivent atteindre le cristal 💎 !
+    </div>
+  </aside>
+
+  <div id="game-area">
+    <canvas id="game" width="1100" height="660"></canvas>
+    <div id="game-msg"></div>
   </div>
 
+  <aside id="commands-panel">
+    <!-- LÉO -->
+    <div class="cmd-player">
+      <div class="cmd-title leo">⚔️ Léo — Joueur 1</div>
+      <div class="cmd-row"><span class="key">← ↑ ↓ →</span><span class="action">Se déplacer</span></div>
+      <div class="cmd-row"><span class="key">Shift droit</span><span class="action">Frapper à l'épée ⚔️</span></div>
+      <div class="cmd-row" style="font-size:14px;color:#ffffff;margin-top:4px;">
+        Casse les blocs fissurés en marchant.<br>
+        🗝 <b style="color:#ffeb70">Seul Léo</b> ouvre les portes.
+      </div>
+    </div>
+    <!-- MIA -->
+    <div class="cmd-player">
+      <div class="cmd-title mia">✨ Mia — Joueur 2</div>
+      <div class="cmd-row"><span class="key">Z Q S D</span><span class="action">Se déplacer</span></div>
+      <div class="cmd-row"><span class="key">F</span><span class="action">Révéler un passage ✨</span></div>
+      <div class="cmd-row"><span class="key">Échap</span><span class="action">Menu / Pause</span></div>
+      <div class="cmd-row" style="font-size:14px;color:#ffffff;margin-top:4px;">
+        Pose-toi sur 🔘 pour ouvrir la grille.
+      </div>
+    </div>
+  </aside>
+
 <script>
+// ============ MUSIC ============
+const musicMenu = new Audio('Music/Menu Start.mp3');
+musicMenu.loop = true;
+musicMenu.volume = 0.6;
+const musicGame = new Audio('Music/Music In Game.mp3');
+musicGame.loop = true;
+musicGame.volume = 0.5;
+
+let currentTrack = null;
+function setMusic(track) {
+  if (currentTrack === track) return;
+  if (currentTrack) { currentTrack.pause(); currentTrack.currentTime = 0; }
+  currentTrack = track;
+  if (currentTrack) currentTrack.play().catch(() => {});
+}
+
+// ============ SOUND FX ============
+const _ac = new (window.AudioContext || window.webkitAudioContext)();
+// Débloquer l'AudioContext au premier clic/touche
+(function _acUnlock() {
+  const resume = () => { if (_ac.state === 'suspended') _ac.resume(); };
+  document.addEventListener('keydown', resume, { once: true });
+  document.addEventListener('click',   resume, { once: true });
+})();
+
+const SFX = {
+  // Épée de Léo — whoosh + impact métallique
+  sword() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(500, t);
+    o.frequency.exponentialRampToValueAtTime(80, t + 0.18);
+    g.gain.setValueAtTime(0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    o.start(t); o.stop(t + 0.22);
+    // Bruit de frappe
+    const buf = _ac.createBuffer(1, _ac.sampleRate * 0.06, _ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1-i/d.length);
+    const s = _ac.createBufferSource(), g2 = _ac.createGain();
+    const f = _ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2000;
+    s.buffer = buf; s.connect(f); f.connect(g2); g2.connect(_ac.destination);
+    g2.gain.setValueAtTime(0.25, t + 0.05); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    s.start(t + 0.05);
+  },
+
+  // Magie de Mia — scintillement féérique
+  magic() {
+    const t = _ac.currentTime;
+    [0, 0.06, 0.13, 0.20].forEach((dt, i) => {
+      const o = _ac.createOscillator(), g = _ac.createGain();
+      o.connect(g); g.connect(_ac.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime([880, 1108, 1320, 1760][i], t + dt);
+      g.gain.setValueAtTime(0.14, t + dt);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.4);
+      o.start(t + dt); o.stop(t + dt + 0.4);
+    });
+  },
+
+  // Clé ramassée — ding joyeux
+  key() {
+    const t = _ac.currentTime;
+    [0, 0.12].forEach((dt, i) => {
+      const o = _ac.createOscillator(), g = _ac.createGain();
+      o.connect(g); g.connect(_ac.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime([1047, 1319][i], t + dt);
+      g.gain.setValueAtTime(0.28, t + dt);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.45);
+      o.start(t + dt); o.stop(t + dt + 0.45);
+    });
+  },
+
+  // Porte ouverte — grincement grave
+  door() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(130, t);
+    o.frequency.linearRampToValueAtTime(55, t + 0.5);
+    g.gain.setValueAtTime(0.22, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o.start(t); o.stop(t + 0.55);
+  },
+
+  // Mur fragile brisé — gravier + secousse
+  wall() {
+    const t = _ac.currentTime;
+    const buf = _ac.createBuffer(1, _ac.sampleRate * 0.35, _ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 0.6);
+    const s = _ac.createBufferSource(), g = _ac.createGain();
+    const f = _ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700;
+    s.buffer = buf; s.connect(f); f.connect(g); g.connect(_ac.destination);
+    g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    s.start(t);
+  },
+
+  // Interrupteur — clic électrique net
+  switch() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(280, t);
+    o.frequency.setValueAtTime(560, t + 0.025);
+    o.frequency.setValueAtTime(280, t + 0.05);
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    o.start(t); o.stop(t + 0.12);
+  },
+
+  // Grille / gate ouverture — métal lourd
+  gate() {
+    const t = _ac.currentTime;
+    const buf = _ac.createBuffer(1, _ac.sampleRate * 0.3, _ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1-i/d.length) * 0.6;
+    const s = _ac.createBufferSource(), g = _ac.createGain();
+    const f = _ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 400; f.Q.value = 0.5;
+    s.buffer = buf; s.connect(f); f.connect(g); g.connect(_ac.destination);
+    g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    s.start(t);
+    // Ton grave métallique
+    const o = _ac.createOscillator(), g2 = _ac.createGain();
+    o.connect(g2); g2.connect(_ac.destination);
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(90, t); o.frequency.linearRampToValueAtTime(55, t + 0.25);
+    g2.gain.setValueAtTime(0.2, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.start(t); o.stop(t + 0.3);
+  },
+
+  // Grille fermée (timer expiré)
+  gateClose() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(160, t);
+    o.frequency.exponentialRampToValueAtTime(50, t + 0.5);
+    g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o.start(t); o.stop(t + 0.55);
+  },
+
+  // Pic détruit par épée
+  spike() {
+    const t = _ac.currentTime;
+    const buf = _ac.createBuffer(1, _ac.sampleRate * 0.18, _ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1-i/d.length);
+    const s = _ac.createBufferSource(), g = _ac.createGain();
+    const f = _ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1400;
+    s.buffer = buf; s.connect(f); f.connect(g); g.connect(_ac.destination);
+    g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    s.start(t);
+  },
+
+  // Ennemi vaincu — chute grave
+  enemy() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(220, t);
+    o.frequency.exponentialRampToValueAtTime(55, t + 0.35);
+    g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+    o.start(t); o.stop(t + 0.38);
+  },
+
+  // Boss touché — impact vibrant
+  bossHit() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.setValueAtTime(300, t + 0.04);
+    o.frequency.setValueAtTime(100, t + 0.1);
+    g.gain.setValueAtTime(0.28, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.start(t); o.stop(t + 0.3);
+  },
+
+  // Personnage blessé / touché
+  hurt() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(440, t);
+    o.frequency.setValueAtTime(220, t + 0.06);
+    o.frequency.setValueAtTime(110, t + 0.12);
+    g.gain.setValueAtTime(0.28, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    o.start(t); o.stop(t + 0.28);
+  },
+
+  // Cristal collecté — fanfare victorieuse
+  crystal() {
+    const t = _ac.currentTime;
+    [[523,0],[659,0.1],[784,0.2],[1047,0.32],[1319,0.44]].forEach(([freq, dt]) => {
+      const o = _ac.createOscillator(), g = _ac.createGain();
+      o.connect(g); g.connect(_ac.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.22, t + dt);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.55);
+      o.start(t + dt); o.stop(t + dt + 0.55);
+    });
+  },
+
+  // Torche / Orbe ramassée
+  orb() {
+    const t = _ac.currentTime;
+    [0, 0.08, 0.16, 0.24].forEach((dt, i) => {
+      const o = _ac.createOscillator(), g = _ac.createGain();
+      o.connect(g); g.connect(_ac.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime([660, 784, 988, 1175][i], t + dt);
+      g.gain.setValueAtTime(0.13, t + dt);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.35);
+      o.start(t + dt); o.stop(t + dt + 0.35);
+    });
+  },
+
+  // Pas sur interrupteur — réactivation
+  switchRearm() {
+    const t = _ac.currentTime;
+    const o = _ac.createOscillator(), g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(400, t);
+    o.frequency.linearRampToValueAtTime(600, t + 0.08);
+    g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.start(t); o.stop(t + 0.1);
+  },
+};
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
@@ -102,14 +517,14 @@ START_SCREEN.src = encodeURI('BACKGROUND/START SCREEN.png');
 
 const W = canvas.width, H = canvas.height;
 const TILE = 40;
-const COLS = 20, ROWS = 15;
+const COLS = 27, ROWS = 16;
 
 // ============ GAME STATE ============
-const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 'select', PLAYING: 'playing', WIN: 'win', GAMEOVER: 'gameover', LEVEL_COMPLETE: 'complete', INTRO: 'intro' };
+const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 'select', PLAYING: 'playing', WIN: 'win', GAMEOVER: 'gameover', LEVEL_COMPLETE: 'complete', INTRO: 'intro', PAUSED: 'paused' };
 let state = STATE.MENU;
 let menuIndex = 0;
 let currentLevel = 0;
-let maxUnlocked = 0;
+let maxUnlocked = 9;
 let crystals = 0;
 let activeChar = 0; // 0 = Léo, 1 = Mia
 let message = '';
@@ -149,69 +564,72 @@ const T = {
 
 const LEVELS = [
   {
-    name: "1. Le Labyrinthe Vert — Apprentissage",
-    hint: "Trouve la clé, ouvre la porte, attrape le cristal.",
+    name: "1. La Forêt d'Apprentissage",
+    hint: "Léo : trouve la clé 🗝 puis marche vers la porte. Les deux héros doivent atteindre le cristal 💎 !",
     biome: 'forest',
     map: [
-      "####################",
-      "#L.................#",
-      "#.####.####.####.#.#",
-      "#.#..#......#..#.#.#",
-      "#.#..#.K....#..#...#",
-      "#.####.####.####.#.#",
-      "#..................#",
-      "##.##############.##",
-      "#M.#............#..#",
-      "#..#.######.....#..#",
-      "#..#.#....#.....D.C#",
-      "#....#....#........#",
-      "#....#....#........#",
-      "#....######........#",
-      "####################",
+      "###########################",
+      "#L........................#",
+      "#.........................#",
+      "#......K..................#",
+      "#.........................#",
+      "#.........................#",
+      "#.........................#",
+      "##########D################",
+      "#.........................#",
+      "#.........................#",
+      "#.........................#",
+      "#.........................#",
+      "#.........C...............#",
+      "#.........................#",
+      "#M........................#",
+      "###########################",
     ]
   },
   {
-    name: "2. Les Portes Oubliées — Interrupteurs",
-    hint: "Léo peut pousser les blocs (B). Active l'interrupteur (S) pour ouvrir la grille (G).",
+    name: "2. Les Portes Oubliées",
+    hint: "Mia se pose sur l'interrupteur 🔘 pour que Léo passe. Léo frappe les ennemis à l'épée (Shift) !",
     biome: 'forest',
     map: [
-      "####################",
-      "#L........#........#",
-      "#..####...#...####.#",
-      "#..#..#...#...#..#.#",
-      "#..#.B#...G...#..#.#",
-      "#..#..#...#...#..#.#",
-      "#..####...#...####.#",
-      "#.........#........#",
-      "#####S#####........#",
-      "#M.....#...........#",
-      "#......#....K......#",
-      "#......#...........#",
-      "#......#..........C#",
-      "#......#...........#",
-      "####################",
+      "###########################",
+      "#L........#..............M#",
+      "#.........#...............#",
+      "#.........#...............#",
+      "#.....X...#...............#",
+      "#.........#...............#",
+      "#.........###########.....#",
+      "#.........#.........G.....#",
+      "#.........#.........#.....#",
+      "#...S.....#....K....#.....#",
+      "#.........#.........#.....#",
+      "#.........###########.....#",
+      "#.........................#",
+      "#..........C..............#",
+      "#.........................#",
+      "###########################",
     ]
   },
   {
     name: "3. La Grotte des Pièges",
-    hint: "Évite les pics ! Ils font mal. Trouve la clé.",
+    hint: "Léo : utilise l'épée (Shift) pour détruire les pics et atteindre la clé !",
     biome: 'cave',
     map: [
-      "####################",
-      "#L................C#",
-      "#.XXXXXXXXXXXX.#####",
-      "#..................#",
-      "######.#######.....#",
-      "#.....X......#.....#",
-      "#.XXX.X.XXXX.#.X.X.#",
-      "#.....X......#.X.X.#",
-      "#.#####.#####.X.X.#",
-      "#.....X.....#.X.X.#",
-      "#.XXX.X.XXX.#.....#",
-      "#.....X.....#.K.D.#",
-      "#######.###########",
-      "#M.................#",
-      "####################",
+      "###########################",
+      "#L........................#",
+      "#.........................#",
+      "#....X....X....X..........#",
+      "#.........................#",
+      "#............K............#",
+      "#.........................#",
+      "#########D#################",
+      "#.........................#",
+      "#.........................#",
+      "#....X....X....X..........#",
+      "#.........................#",
+      "#............C............#",
+      "#.........................#",
+      "#M........................#",
+      "###########################",
     ]
   },
   {
@@ -397,7 +815,7 @@ function loadLevel(idx) {
         case 'D': entities.doors.push({x, y, open: false}); tile = T.DOOR; break;
         case 'E': entities.exit = {x, y}; tile = T.EXIT; break;
         case 'C': entities.crystals.push({x, y, taken: false}); tile = T.FLOOR; break;
-        case 'S': entities.switches.push({x, y, active: false}); tile = T.SWITCH; break;
+        case 'S': entities.switches.push({x, y, active: false, timer: 0}); tile = T.SWITCH; break;
         case 'G': entities.gates.push({x, y, open: false}); tile = T.GATE; break;
         case 'X': entities.spikes.push({x, y}); tile = T.SPIKE; break;
         case 'B': entities.blocks.push({x, y}); tile = T.FLOOR; break;
@@ -429,7 +847,7 @@ function loadLevel(idx) {
 
   level = {
     data, map, entities, decorations,
-    leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0 },
+    leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0, shieldTimer: 0, shieldCooldown: 0 },
     mia: { x: miaStart.x * TILE + 4, y: miaStart.y * TILE + 4, dir: 'down', moving: false, magicTimer: 0 },
     symbolOrder: [],
     timer: data.timer || null,
@@ -437,6 +855,39 @@ function loadLevel(idx) {
     won: false,
     hits: 0,
   };
+
+  // Mettre à jour le panneau gauche avec les objectifs du niveau
+  updateHintsPanel(data, idx);
+}
+
+function updateHintsPanel(data, idx) {
+  const nameEl = document.getElementById('hint-level-name');
+  const stepsEl = document.getElementById('hint-steps');
+  if (!nameEl || !stepsEl) return;
+  nameEl.textContent = data.name;
+
+  // Générer les étapes selon le contenu du niveau
+  const hasKey    = data.map.some(r => r.includes('K'));
+  const hasDoor   = data.map.some(r => r.includes('D'));
+  const hasSwitch = data.map.some(r => r.includes('S'));
+  const hasGate   = data.map.some(r => r.includes('G'));
+  const hasSpike  = data.map.some(r => r.includes('X'));
+  const hasHidden = data.map.some(r => r.includes('H'));
+  const hasEnemy  = idx === 6;
+
+  const steps = [];
+  if (hasKey)    steps.push({ icon: '🗝', text: 'Léo : trouve et ramasse la clé' });
+  if (hasDoor)   steps.push({ icon: '🚪', text: 'Léo : marche vers la porte pour l\'ouvrir' });
+  if (hasSwitch) steps.push({ icon: '🔘', text: 'Mia : pose-toi sur l\'interrupteur pour ouvrir la grille' });
+  if (hasGate)   steps.push({ icon: '🚧', text: 'La grille s\'ouvre quand l\'interrupteur est activé' });
+  if (hasSpike)  steps.push({ icon: '⚠️', text: 'Léo : utilise l\'épée (Shift) pour détruire les pics' });
+  if (hasHidden) steps.push({ icon: '👀', text: 'Mia : appuie sur F près d\'un mur pour révéler les passages cachés' });
+  if (hasEnemy)  steps.push({ icon: '👹', text: 'Léo : frappe les ennemis avec l\'épée (Shift)' });
+  steps.push({ icon: '💎', text: 'Les deux héros doivent se retrouver sur le cristal pour finir !' });
+
+  stepsEl.innerHTML = steps.map((s, i) =>
+    `<div class="hint-step"><span class="step-num">${i+1}</span><span>${s.icon} ${s.text}</span></div>`
+  ).join('');
 }
 
 function generateDecorations(map, entities, leoStart, miaStart, biome, idx) {
@@ -529,16 +980,11 @@ function tryMove(ent, dx, dy, who) {
   let ny = ent.y + dy * speed;
   if (dx !== 0) {
     if (!rectVsSolid(nx, ent.y, who)) ent.x = nx;
-    else {
-      // try push block
-      tryPushBlock(ent, dx, 0, who);
-    }
+    else tryInteractOnCollision(ent, dx, 0, who);
   }
   if (dy !== 0) {
     if (!rectVsSolid(ent.x, ny, who)) ent.y = ny;
-    else {
-      tryPushBlock(ent, 0, dy, who);
-    }
+    else tryInteractOnCollision(ent, 0, dy, who);
   }
   if (dx > 0) ent.dir = 'right';
   else if (dx < 0) ent.dir = 'left';
@@ -547,24 +993,47 @@ function tryMove(ent, dx, dy, who) {
   ent.moving = (dx !== 0 || dy !== 0);
 }
 
-function tryPushBlock(ent, dx, dy, who) {
-  if (who !== 'leo') return;
-  // Find block in direction
-  const cx = ent.x + TILE/2 + dx*TILE;
-  const cy = ent.y + TILE/2 + dy*TILE;
+// Auto-interact on collision: open door with key, break weak wall (Léo)
+function tryInteractOnCollision(ent, dx, dy, who) {
+  const cx = ent.x + TILE/2 + dx * TILE * 0.8;
+  const cy = ent.y + TILE/2 + dy * TILE * 0.8;
   const tx = Math.floor(cx / TILE);
   const ty = Math.floor(cy / TILE);
-  const block = level.entities.blocks.find(b => b.x === tx && b.y === ty);
-  if (!block) return;
-  const nx = tx + dx, ny = ty + dy;
-  if (isSolid(nx, ny, 'leo')) return;
-  block.x = nx; block.y = ny;
+
+  // Auto-open door — LÉON uniquement (porte s'ouvre si Léo a une clé)
+  const door = level.entities.doors.find(d => d.x === tx && d.y === ty && !d.open);
+  if (door) {
+    if (who !== 'leo') {
+      showMsg("Seul Léo peut ouvrir les portes 🗝 !");
+      return;
+    }
+    if (level.leo.hasKey > 0) {
+      door.open = true;
+      level.map[ty][tx] = T.FLOOR;
+      level.leo.hasKey--;
+      showMsg("🗝 Porte ouverte !");
+      SFX.door();
+    } else {
+      showMsg("Léo a besoin d'une clé 🗝 !");
+    }
+    return;
+  }
+
+  // Léo casse automatiquement les murs fragiles en marchant dedans
+  if (who === 'leo') {
+    const w = level.entities.weakWalls.find(w => w.x === tx && w.y === ty && !w.broken);
+    if (w) {
+      w.broken = true;
+      level.map[ty][tx] = T.FLOOR;
+      showMsg("Mur brisé !");
+      SFX.wall();
+    }
+  }
 }
 
 // ============ INTERACT ============
 function interactFor(who) {
   const ch = who === 'leo' ? level.leo : level.mia;
-  // Check tile in front
   let fx = 0, fy = 0;
   if (ch.dir === 'up') fy = -1;
   else if (ch.dir === 'down') fy = 1;
@@ -573,56 +1042,22 @@ function interactFor(who) {
   const tx = Math.floor((ch.x + TILE/2) / TILE) + fx;
   const ty = Math.floor((ch.y + TILE/2) / TILE) + fy;
 
-  // Door
-  const door = level.entities.doors.find(d => d.x === tx && d.y === ty);
-  if (door && !door.open) {
-    if (level.leo.hasKey > 0) {
-      door.open = true;
-      level.leo.hasKey--;
-      showMsg("Porte ouverte !");
-    } else {
-      showMsg("Il faut une clé !");
-    }
-    return;
-  }
-
-  // Switch
-  const sw = level.entities.switches.find(s => s.x === tx && s.y === ty);
-  if (sw) {
-    sw.active = !sw.active;
-    // Open all gates
-    level.entities.gates.forEach(g => g.open = level.entities.switches.some(s => s.active));
-    showMsg(sw.active ? "Interrupteur activé !" : "Désactivé.");
-    return;
-  }
-
-  // Weak wall (Léo only)
-  if (who === 'leo') {
-    const w = level.entities.weakWalls.find(w => w.x === tx && w.y === ty);
-    if (w && !w.broken) {
-      w.broken = true;
-      showMsg("Mur brisé !");
-      return;
-    }
-  }
-
-  // Hidden (Mia reveals)
+  // Hidden (Mia révèle les passages cachés)
   if (who === 'mia') {
     const h = level.entities.hidden.find(h => h.x === tx && h.y === ty);
     if (h && !h.revealed) {
       h.revealed = true;
       showMsg("Passage révélé !");
+      SFX.magic();
       level.mia.magicTimer = 30;
       return;
     }
   }
-
-  showMsg("...");
 }
 
 function attack() {
   level.leo.attackTimer = 15;
-  // Hit enemies in front
+  SFX.sword();
   let fx = 0, fy = 0;
   if (level.leo.dir === 'up') fy = -1;
   else if (level.leo.dir === 'down') fy = 1;
@@ -630,12 +1065,28 @@ function attack() {
   else if (level.leo.dir === 'right') fx = 1;
   const ax = level.leo.x + TILE/2 + fx*TILE;
   const ay = level.leo.y + TILE/2 + fy*TILE;
+  const atx = Math.floor(ax / TILE);
+  const aty = Math.floor(ay / TILE);
+
+  // Détruire les pics devant Léo
+  const spikeIdx = level.entities.spikes.findIndex(s => s.x === atx && s.y === aty);
+  if (spikeIdx !== -1) {
+    level.entities.spikes.splice(spikeIdx, 1);
+    level.map[aty][atx] = T.FLOOR;
+    showMsg("Pic détruit ! ⚔️");
+    SFX.spike();
+    return;
+  }
+
+  // Frapper les ennemis
   level.entities.enemies.forEach(e => {
     if (e.alive && Math.abs(e.x - ax) < TILE && Math.abs(e.y - ay) < TILE) {
       e.alive = false;
       showMsg("Ennemi vaincu !");
+      SFX.enemy();
     }
   });
+
   // Boss
   if (level.entities.boss) {
     const b = level.entities.boss;
@@ -643,15 +1094,23 @@ function attack() {
       b.hp--;
       b.cool = 30;
       showMsg(`Gardien: ${b.hp} PV restants !`);
-      if (b.hp <= 0) {
-        showMsg("Gardien vaincu ! Récupère le cristal !");
-      }
+      SFX.bossHit();
+      if (b.hp <= 0) showMsg("Gardien vaincu ! Récupère le cristal !");
     }
   }
 }
 
 // ============ UPDATE ============
-function showMsg(m) { message = m; messageTimer = 120; }
+// Div message HTML (hors canvas)
+const _msgDiv = document.getElementById('game-msg');
+let _msgHintInterval = null;
+
+function showMsg(m) {
+  message = m; messageTimer = 120;
+  _msgDiv.className = '';
+  _msgDiv.textContent = m;
+  clearInterval(_msgHintInterval);
+}
 
 function updateGame() {
   if (state !== STATE.PLAYING) return;
@@ -664,16 +1123,25 @@ function updateGame() {
   else if (keys['ArrowDown']) dy1 = 1;
   tryMove(level.leo, dx1, dy1, 'leo');
   if (consumePress('Enter')) interactFor('leo');
-  if (consumePress('ShiftRight') || consumePress('Space')) attack();
+  if (consumePress('ShiftRight')) attack();
 
-  // --- MIA (P2) : ZQSD + F (magie / interagir) ---
+  // Bouclier de Léo (Ctrl Droit)
+  if (consumePress('ControlRight') && level.leo.shieldCooldown <= 0) {
+    level.leo.shieldTimer = 50;
+    level.leo.shieldCooldown = 110;
+    SFX.shield();
+  }
+  if (level.leo.shieldTimer > 0) level.leo.shieldTimer--;
+  else if (level.leo.shieldCooldown > 0) level.leo.shieldCooldown--;
+
+  // --- MIA (P2) : ZQSD + F ou Espace (magie / interagir) ---
   let dx2 = 0, dy2 = 0;
   if (keys['KeyQ'] || keys['KeyA']) dx2 = -1;
   else if (keys['KeyD']) dx2 = 1;
   if (keys['KeyZ'] || keys['KeyW']) dy2 = -1;
   else if (keys['KeyS']) dy2 = 1;
   tryMove(level.mia, dx2, dy2, 'mia');
-  if (consumePress('KeyF') || consumePress('KeyE')) interactFor('mia');
+  if (consumePress('KeyF') || consumePress('KeyE') || consumePress('Space')) { level.mia.magicTimer = 30; SFX.magic(); interactFor('mia'); }
 
   // Timer
   if (level.timeLeft !== null) {
@@ -693,11 +1161,13 @@ function updateGame() {
       if (!k.taken && k.x === cxt && k.y === cyt) {
         k.taken = true; level.leo.hasKey++;
         showMsg((who === 'leo' ? "Léo" : "Mia") + " a trouvé une clé !");
+        SFX.key();
       }
     });
     level.entities.torches.forEach(t => {
       if (!t.taken && t.x === cxt && t.y === cyt) {
         t.taken = true; showMsg("Torche ! La lumière s'élargit.");
+        SFX.orb();
       }
     });
     level.entities.orbs.forEach(o => {
@@ -705,14 +1175,47 @@ function updateGame() {
         o.taken = true;
         level.entities.hidden.forEach(h => h.revealed = true);
         showMsg("Orbe magique ! Passages révélés !");
+        SFX.orb();
       }
     });
     level.entities.spikes.forEach(s => {
       if (s.x === cxt && s.y === cyt) {
-        respawn();
-        showMsg("Aïe ! Les pics !");
+        if (who === 'leo' && level.leo.shieldTimer > 0) {
+          showMsg('🛡 Bouclier ! Pic bloqué !');
+          SFX.shieldBlock();
+        } else {
+          respawn(who);
+          showMsg((who === 'leo' ? 'Léo' : 'Mia') + ' a touché les pics !');
+          SFX.hurt();
+        }
       }
     });
+  }
+
+  // Switches — dalles de pression : s'activent quand un personnage se pose dessus
+  // Chrono de 20 secondes : la grille reste ouverte 20s après que le personnage quitte la dalle
+  level.entities.switches.forEach(sw => {
+    const leoOn = Math.floor((level.leo.x+TILE/2)/TILE) === sw.x && Math.floor((level.leo.y+TILE/2)/TILE) === sw.y;
+    const miaOn = Math.floor((level.mia.x+TILE/2)/TILE) === sw.x && Math.floor((level.mia.y+TILE/2)/TILE) === sw.y;
+    const onIt = leoOn || miaOn;
+    const wasActive = sw.active;
+    if (onIt) {
+      sw.timer = 20 * 60; // 20 secondes à 60fps
+      if (!sw.active) { sw.active = true; showMsg("Interrupteur activé ! 20 secondes pour passer !"); SFX.switch(); }
+    } else {
+      if (sw.timer > 0) {
+        sw.timer--;
+        sw.active = true;
+        if (sw.timer === 0) { sw.active = false; showMsg("⏱ Temps écoulé ! La grille se referme."); SFX.gateClose(); }
+      } else {
+        if (sw.active) showMsg("Interrupteur relâché.");
+        sw.active = false;
+      }
+    }
+  });
+  if (level.entities.switches.length > 0) {
+    const anySwitchActive = level.entities.switches.some(s => s.active);
+    level.entities.gates.forEach(g => g.open = anySwitchActive);
   }
 
   // Enemies
@@ -727,9 +1230,17 @@ function updateGame() {
     }
     // Touch either player
     for (const pch of [level.leo, level.mia]) {
+      const pWho = pch === level.leo ? 'leo' : 'mia';
       if (Math.abs(e.x - pch.x) < TILE-10 && Math.abs(e.y - pch.y) < TILE-10) {
-        respawn();
-        showMsg("Touché par un ennemi !");
+        if (pWho === 'leo' && level.leo.shieldTimer > 0) {
+          showMsg('🛡 Bouclier ! Ennemi repoussé !');
+          SFX.shieldBlock();
+          e.dx *= -1; e.dy *= -1;
+        } else {
+          respawn(pWho);
+          showMsg((pWho === 'leo' ? 'Léo' : 'Mia') + ' touché par un ennemi !');
+          SFX.hurt();
+        }
         break;
       }
     }
@@ -748,35 +1259,48 @@ function updateGame() {
       const dist = Math.hypot(ddx, ddy);
       if (dist > 1) { b.x += ddx/dist * 1.2; b.y += ddy/dist * 1.2; }
       for (const pch of [level.leo, level.mia]) {
+        const pWho = pch === level.leo ? 'leo' : 'mia';
         if (Math.abs(b.x - pch.x) < TILE-8 && Math.abs(b.y - pch.y) < TILE-8) {
-          respawn();
-          b.x = 9*TILE+20; b.y = 6*TILE+20; b.hp = Math.min(5, b.hp+1);
-          showMsg("Le Gardien vous a frappés !");
+          if (pWho === 'leo' && level.leo.shieldTimer > 0) {
+            showMsg('🛡 Bouclier ! Le Gardien est repoussé !');
+            SFX.shieldBlock();
+            b.x = 9*TILE+20; b.y = 6*TILE+20;
+          } else {
+            respawn(pWho);
+            b.x = 9*TILE+20; b.y = 6*TILE+20; b.hp = Math.min(5, b.hp+1);
+            showMsg('Le Gardien vous a frappés !');
+            SFX.hurt();
+          }
           break;
         }
       }
     }
   }
 
-  // Crystals — either player can pick up
+  // Crystals — les DEUX personnages doivent se trouver sur le cristal
   level.entities.crystals.forEach(c => {
     if (c.taken) return;
-    for (const pch of [level.leo, level.mia]) {
-      const pxt = Math.floor((pch.x + TILE/2) / TILE);
-      const pyt = Math.floor((pch.y + TILE/2) / TILE);
-      if (c.x === pxt && c.y === pyt) {
-        if (level.entities.boss && level.entities.boss.hp > 0) {
-          showMsg("Bats d'abord le Gardien !");
-          return;
-        }
-        c.taken = true;
-        crystals++;
-        state = STATE.LEVEL_COMPLETE;
-        showMsg("Cristal récupéré !");
-        break;
-      }
+    const lxt = Math.floor((level.leo.x + TILE/2) / TILE);
+    const lyt = Math.floor((level.leo.y + TILE/2) / TILE);
+    const mxt = Math.floor((level.mia.x + TILE/2) / TILE);
+    const myt = Math.floor((level.mia.y + TILE/2) / TILE);
+    const leoOn = (c.x === lxt && c.y === lyt);
+    const miaOn = (c.x === mxt && c.y === myt);
+    // Signaler si un seul est arrivé
+    if ((leoOn || miaOn) && !(leoOn && miaOn)) {
+      if (leoOn)  showMsg("Léo attend Mia sur le cristal ! ✨");
+      if (miaOn)  showMsg("Mia attend Léo sur le cristal ! ⚔️");
     }
-    if (c.taken) {
+    if (leoOn && miaOn) {
+      if (level.entities.boss && level.entities.boss.hp > 0) {
+        showMsg("Bats d'abord le Gardien !");
+        return;
+      }
+      c.taken = true;
+      crystals++;
+      state = STATE.LEVEL_COMPLETE;
+      showMsg("Cristal récupéré ! Niveau terminé ! 🎉");
+      SFX.crystal();
       if (currentLevel + 1 > maxUnlocked) maxUnlocked = currentLevel + 1;
     }
   });
@@ -789,7 +1313,8 @@ function updateGame() {
   });
   if (level.entities.dualPlates.length >= 2) {
     const allActive = level.entities.dualPlates.every(p => p.active);
-    level.entities.gates.forEach(g => g.open = allActive);
+    const anySwitchActive = level.entities.switches.some(s => s.active);
+    level.entities.gates.forEach(g => g.open = allActive || anySwitchActive);
   }
 
   // Symbol plates (sequence A B C)
@@ -816,14 +1341,24 @@ function updateGame() {
   });
 
   if (messageTimer > 0) messageTimer--;
+  // Quand le message expire, afficher le hint du niveau
+  if (messageTimer === 0 && state === STATE.PLAYING && level && level.data) {
+    if (_msgDiv.className !== 'hint') {
+      _msgDiv.className = 'hint';
+      _msgDiv.textContent = '💡 ' + level.data.hint;
+    }
+  } else if (state !== STATE.PLAYING) {
+    _msgDiv.textContent = '';
+    _msgDiv.className = '';
+  }
 }
 
-function respawn() {
+function respawn(who) {
   const data = level.data;
   for (let y = 0; y < data.map.length; y++) {
     for (let x = 0; x < data.map[y].length; x++) {
-      if (data.map[y][x] === 'L') { level.leo.x = x*TILE+4; level.leo.y = y*TILE+4; }
-      if (data.map[y][x] === 'M') { level.mia.x = x*TILE+4; level.mia.y = y*TILE+4; }
+      if (who === 'leo'  && data.map[y][x] === 'L') { level.leo.x = x*TILE+4; level.leo.y = y*TILE+4; }
+      if (who === 'mia'  && data.map[y][x] === 'M') { level.mia.x = x*TILE+4; level.mia.y = y*TILE+4; }
     }
   }
 }
@@ -866,8 +1401,30 @@ function drawTile(t, px, py, biome, x, y) {
     ctx.fillStyle = '#444';
     ctx.fillRect(px+10, py+10, 20, 20);
     const sw = level.entities.switches.find(s => s.x === x && s.y === y);
+    const onIt = sw && sw.active && (
+      (Math.floor((level.leo.x+TILE/2)/TILE) === x && Math.floor((level.leo.y+TILE/2)/TILE) === y) ||
+      (Math.floor((level.mia.x+TILE/2)/TILE) === x && Math.floor((level.mia.y+TILE/2)/TILE) === y)
+    );
     ctx.fillStyle = sw && sw.active ? '#ffeb70' : '#aa3030';
     ctx.fillRect(px+14, py+14, 12, 12);
+    // Chrono si actif mais personne dessus (décompte en cours)
+    if (sw && sw.active && !onIt && sw.timer > 0) {
+      const secs = Math.ceil(sw.timer / 60);
+      const ratio = sw.timer / (20 * 60);
+      const urgent = secs <= 5;
+      // Barre de progression
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(px, py - 10, TILE, 7);
+      ctx.fillStyle = ratio > 0.5 ? '#50e070' : ratio > 0.25 ? '#ffcc00' : '#ff4040';
+      ctx.fillRect(px, py - 10, Math.round(TILE * ratio), 7);
+      // Secondes — clignotant si urgent
+      if (!urgent || Math.floor(Date.now() / 300) % 2 === 0) {
+        ctx.fillStyle = urgent ? '#ff4040' : '#fff';
+        ctx.font = urgent ? 'bold 13px monospace' : 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(secs + 's', px + TILE/2, urgent ? py - 14 : py - 13);
+      }
+    }
   } else if (t === T.GATE) {
     const g = level.entities.gates.find(g => g.x === x && g.y === y);
     if (!g || !g.open) {
@@ -905,12 +1462,43 @@ function drawTile(t, px, py, biome, x, y) {
   } else if (t === T.WEAK_WALL) {
     const w = level.entities.weakWalls.find(w => w.x === x && w.y === y);
     if (w && !w.broken) {
-      ctx.fillStyle = c.wall;
+      // Fond très distinct : gris clair fissuré (pas du tout comme les murs sombres)
+      ctx.fillStyle = '#c0a888';
       ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = '#aa3030';
-      ctx.fillRect(px+5, py+5, 4, 4);
-      ctx.fillRect(px+15, py+20, 4, 4);
-      ctx.fillRect(px+25, py+10, 4, 4);
+      ctx.fillStyle = '#d4bc9a';
+      ctx.fillRect(px+2, py+2, TILE-4, TILE-4);
+
+      // Morceaux de mur "émiettés" (coins manquants)
+      ctx.fillStyle = '#b09070';
+      ctx.fillRect(px, py, 8, 8);          // coin haut-gauche cassé
+      ctx.fillRect(px+TILE-9, py, 9, 9);   // coin haut-droit cassé
+      ctx.fillRect(px, py+TILE-9, 9, 9);   // coin bas-gauche cassé
+
+      // Grandes fissures très visibles
+      ctx.strokeStyle = '#5a3a10';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(px+6, py+2); ctx.lineTo(px+14, py+16); ctx.lineTo(px+10, py+28); ctx.lineTo(px+16, py+38); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px+26, py+4); ctx.lineTo(px+22, py+14); ctx.lineTo(px+28, py+24); ctx.lineTo(px+24, py+36); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px+4, py+18); ctx.lineTo(px+22, py+22); ctx.stroke();
+
+      // Bordure rouge-orange clignotante
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 250);
+      ctx.strokeStyle = `rgba(255, 80, 20, ${0.6 + pulse * 0.4})`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(px+1, py+1, TILE-2, TILE-2);
+
+      // Étiquette "SHIFT→" si Léo est adjacent
+      const leoTx = Math.floor((level.leo.x + TILE/2) / TILE);
+      const leoTy = Math.floor((level.leo.y + TILE/2) / TILE);
+      const adjacent = (Math.abs(leoTx - x) + Math.abs(leoTy - y)) === 1;
+      if (adjacent) {
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(px, py - 18, TILE, 16);
+        ctx.fillStyle = '#ffeb70';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('SHIFT→', px + TILE/2, py - 5);
+      }
     }
   } else if (t === T.DARK_FLOOR) {
     ctx.fillStyle = '#15152a';
@@ -1307,6 +1895,38 @@ function drawCharacter(ch, isLeo, active) {
     ch.attackTimer--;
   }
 
+  // Magic dust for Mia
+  if (!isLeo && ch.magicTimer > 0) {
+    const t = ch.magicTimer;
+    const cx = px + TILE/2 - 4;
+    const cy = py + TILE/2;
+    const spread = (30 - t) * 1.8;
+    const count = 10;
+    ctx.save();
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + t * 0.25;
+      const dist = 8 + spread + Math.sin(angle * 2 + t * 0.4) * 5;
+      const sx = cx + Math.cos(angle) * dist;
+      const sy = cy + Math.sin(angle) * dist;
+      const alpha = t / 30;
+      const size = 2 + Math.sin(angle + t * 0.3) * 1.5;
+      ctx.fillStyle = `rgba(220,160,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Scintillement central en croix
+    const alpha2 = t / 30;
+    ctx.strokeStyle = `rgba(255,200,255,${alpha2})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx-9, cy); ctx.lineTo(cx+9, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy-9); ctx.lineTo(cx, cy+9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-6,cy-6); ctx.lineTo(cx+6,cy+6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+6,cy-6); ctx.lineTo(cx-6,cy+6); ctx.stroke();
+    ctx.restore();
+    ch.magicTimer--;
+  }
+
   // Active indicator
   if (active) {
     ctx.strokeStyle = '#ffeb70';
@@ -1358,6 +1978,21 @@ function renderGame() {
     ctx.restore();
   }
 
+  // Flash rouge si interrupteur en compte à rebours critique (≤5s)
+  if (level.entities && level.entities.switches) {
+    const critSw = level.entities.switches.find(s => s.active && s.timer > 0 && s.timer <= 5 * 60);
+    if (critSw && Math.floor(Date.now() / 300) % 2 === 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,40,40,0.18)';
+      ctx.fillRect(0, 0, W, H);
+      // Bordure rouge urgente
+      ctx.strokeStyle = 'rgba(255,60,60,0.7)';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, W-10, H-10);
+      ctx.restore();
+    }
+  }
+
   // HUD
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, W, 28);
@@ -1370,71 +2005,38 @@ function renderGame() {
   let hud = `💎 ${crystals}/10  🗝 ${level.leo.hasKey}  P1 Léo · P2 Mia`;
   if (level.timeLeft !== null) hud += `  ⏱ ${Math.max(0, Math.ceil(level.timeLeft))}s`;
   ctx.fillText(hud, W-8, 18);
-
-  // Message
-  if (messageTimer > 0) {
-    ctx.fillStyle = 'rgba(0,0,0,0.85)';
-    ctx.fillRect(W/2-200, H-60, 400, 40);
-    ctx.strokeStyle = '#ffeb70';
-    ctx.strokeRect(W/2-200, H-60, 400, 40);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(message, W/2, H-35);
-  }
-
-  // Hint at start
-  if (messageTimer === 0 && Date.now() % 6000 < 3000) {
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(W/2-260, H-30, 520, 22);
-    ctx.fillStyle = '#c9a8ff';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('💡 ' + level.data.hint, W/2, H-15);
-  }
 }
 
 // ============ MENU ============
 const MENU_ITEMS = ['Jouer', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
 
 function renderMenu() {
-  // Semi-transparent menu panel so the fullscreen background remains visible.
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, 'rgba(42,26,74,0.6)');
-  g.addColorStop(1, 'rgba(10,5,32,0.75)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-
-  // Extra overlay for text readability.
-  ctx.fillStyle = 'rgba(5, 4, 16, 0.2)';
-  ctx.fillRect(0, 0, W, H);
-
-  // Stars
-  for (let i = 0; i < 60; i++) {
-    const sx = (i * 137) % W;
-    const sy = (i * 211) % (H-100);
-    const tw = (Math.sin(Date.now()/500 + i) + 1) / 2;
-    ctx.fillStyle = `rgba(255,255,255,${0.3 + tw*0.7})`;
-    ctx.fillRect(sx, sy, 2, 2);
+  ctx.clearRect(0, 0, W, H);
+  if (startScreenReady) {
+    // Cover : conserver le ratio de l'image
+    const iw = START_SCREEN.naturalWidth  || START_SCREEN.width;
+    const ih = START_SCREEN.naturalHeight || START_SCREEN.height;
+    const scale = Math.max(W / iw, H / ih);
+    const dw = iw * scale, dh = ih * scale;
+    const dx = (W - dw) / 2, dy = (H - dh) / 2;
+    ctx.drawImage(START_SCREEN, dx, dy, dw, dh);
+  } else {
+    ctx.fillStyle = '#1a0f2e';
+    ctx.fillRect(0, 0, W, H);
   }
 
-  // Title
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffeb70';
-  ctx.font = 'bold 56px monospace';
-  ctx.fillText('LÉO & MIA', W/2, 120);
-  ctx.fillStyle = '#c9a8ff';
-  ctx.font = '24px monospace';
-  ctx.fillText('Le Labyrinthe Perdu', W/2, 160);
+  // Subtle dark overlay for text readability
+  ctx.fillStyle = 'rgba(5, 4, 16, 0.35)';
+  ctx.fillRect(0, 0, W, H);
 
   // Decorative characters
   ctx.save();
-  ctx.translate(220, 280);
+  ctx.translate(W/2 - 160, 260);
   ctx.scale(2.5, 2.5);
   drawCharacter({x:0, y:0, dir:'down', moving:true, attackTimer:0}, true, false);
   ctx.restore();
   ctx.save();
-  ctx.translate(500, 280);
+  ctx.translate(W/2 + 100, 260);
   ctx.scale(2.5, 2.5);
   drawCharacter({x:0, y:0, dir:'down', moving:true}, false, false);
   ctx.restore();
@@ -1662,7 +2264,7 @@ function updateLevelSelect() {
   if (consumePress('ArrowUp') || consumePress('KeyW') || consumePress('KeyZ')) menuIndex = Math.max(0, menuIndex - 5);
   if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = Math.min(9, menuIndex + 5);
   if (consumePress('Enter') || consumePress('Space')) {
-    if (menuIndex <= maxUnlocked) {
+    if (menuIndex <= 9) {
       currentLevel = menuIndex;
       state = STATE.INTRO;
     }
@@ -1734,14 +2336,72 @@ function renderGameOver() {
   ctx.fillText('⏱ TEMPS ÉCOULÉ', W/2, H/2 - 20);
   ctx.fillStyle = '#fff';
   ctx.font = '16px monospace';
-  ctx.fillText('Entrée pour réessayer · Échap pour le menu', W/2, H/2 + 30);
-  if (consumePress('Enter')) { loadLevel(currentLevel); state = STATE.PLAYING; }
+  ctx.fillText('Entrée → recommencer · S → choisir niveau · Échap → menu', W/2, H/2 + 30);
+  if (consumePress('Enter') || consumePress('Space')) { loadLevel(currentLevel); state = STATE.PLAYING; }
+  if (consumePress('KeyS')) { state = STATE.LEVEL_SELECT; menuIndex = currentLevel; }
   if (consumePress('Escape')) state = STATE.MENU;
+}
+
+// ============ PAUSE ============
+let pauseIndex = 0;
+const PAUSE_ITEMS = ['▶ Reprendre', '🔄 Recommencer le niveau', '🏠 Menu principal', '📋 Choisir un niveau'];
+
+function renderPause() {
+  renderGame();
+  ctx.fillStyle = 'rgba(5,4,16,0.78)';
+  ctx.fillRect(0, 0, W, H);
+  // Panneau centré
+  const pw = 420, ph = 260;
+  const px = W/2 - pw/2, py = H/2 - ph/2;
+  ctx.fillStyle = '#1a0f2e';
+  ctx.fillRect(px, py, pw, ph);
+  ctx.strokeStyle = '#6a4caf';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(px, py, pw, ph);
+  ctx.fillStyle = '#ffeb70';
+  ctx.font = 'bold 22px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('⏸ PAUSE', W/2, py + 38);
+  ctx.font = '16px monospace';
+  PAUSE_ITEMS.forEach((item, i) => {
+    const iy = py + 80 + i * 42;
+    if (i === pauseIndex) {
+      ctx.fillStyle = '#6a4caf';
+      ctx.fillRect(px + 20, iy - 20, pw - 40, 32);
+      ctx.fillStyle = '#ffeb70';
+    } else {
+      ctx.fillStyle = '#c9a8ff';
+    }
+    ctx.fillText(item, W/2, iy);
+  });
+  ctx.fillStyle = '#555';
+  ctx.font = '11px monospace';
+  ctx.fillText('↑↓ naviguer · Entrée valider · Échap reprendre · Entrée quitter', W/2, py + ph - 14);
+}
+
+function updatePause() {
+  if (consumePress('Escape')) { state = STATE.PLAYING; return; }
+  if (consumePress('ArrowUp') || consumePress('KeyW') || consumePress('KeyZ')) pauseIndex = (pauseIndex - 1 + PAUSE_ITEMS.length) % PAUSE_ITEMS.length;
+  if (consumePress('ArrowDown') || consumePress('KeyS')) pauseIndex = (pauseIndex + 1) % PAUSE_ITEMS.length;
+  if (consumePress('Enter') || consumePress('Space')) {
+    if (pauseIndex === 0) { state = STATE.PLAYING; }
+    else if (pauseIndex === 1) { loadLevel(currentLevel); state = STATE.PLAYING; }
+    else if (pauseIndex === 2) { state = STATE.MENU; menuIndex = 0; }
+    else if (pauseIndex === 3) { state = STATE.LEVEL_SELECT; menuIndex = currentLevel; }
+  }
 }
 
 // ============ MAIN LOOP ============
 function loop() {
   document.body.classList.toggle('start-screen-bg', state === STATE.MENU && startScreenReady);
+  document.body.classList.toggle('menu-mode', state === STATE.MENU);
+
+  // Music routing
+  if (state === STATE.MENU || state === STATE.RULES || state === STATE.CREDITS || state === STATE.LEVEL_SELECT) {
+    setMusic(musicMenu);
+  } else if (state === STATE.PLAYING || state === STATE.INTRO || state === STATE.PAUSED || state === STATE.LEVEL_COMPLETE || state === STATE.GAMEOVER) {
+    setMusic(musicGame);
+  }
 
   if (state === STATE.MENU) { renderMenu(); updateMenu(); }
   else if (state === STATE.RULES) { renderRules(); updateRules(); }
@@ -1751,8 +2411,9 @@ function loop() {
   else if (state === STATE.PLAYING) {
     updateGame();
     renderGame();
-    if (consumePress('Escape')) state = STATE.MENU;
+    if (consumePress('Escape') || consumePress('Enter')) { state = STATE.PAUSED; pauseIndex = 0; }
   }
+  else if (state === STATE.PAUSED) { renderPause(); updatePause(); }
   else if (state === STATE.LEVEL_COMPLETE) { renderLevelComplete(); }
   else if (state === STATE.GAMEOVER) { renderGameOver(); }
 
