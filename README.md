@@ -1,5 +1,7 @@
-# 🌀 Léo & Mia : Le Labyrinthe Perdu
+# héros
 
+> **Titre du jeu :** Léo & Mia : Le Labyrinthe Perdu
+>
 > Un jeu d'aventure en **pixel art 2D** mêlant exploration, réflexion et coopération.  
 > Jouez seul ou avec un ami pour restaurer le **Cristal du Savoir** !
 
@@ -102,6 +104,8 @@ Le jeu récompense votre style de jeu via trois systèmes :
 ## 🚀 Lancer le Jeu
 
 Ouvrez simplement `index.html` dans votre navigateur. Aucune installation requise.
+
+Le dépôt peut être renommé en **héros** sans modification des chemins du jeu : les images, scripts et styles sont chargés avec des chemins relatifs au fichier `index.html`.
 
 ---
 
