@@ -446,15 +446,27 @@
     body { flex-direction: column !important; }
     #hints-panel, #commands-panel { display: none !important; }
     #game-area {
-      height: calc(100dvh - 182px);
-      height: calc(100vh - 182px);
+      height: 100dvh;
+      height: 100vh;
     }
     #game {
       touch-action: none;
-      max-height: calc(100dvh - 230px) !important;
-      max-height: calc(100vh - 230px) !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      height: 100vh !important;
+      max-height: none !important;
+      aspect-ratio: unset !important;
     }
-    #game-msg { font-size: 12px; height: 36px; }
+    #game-msg { display: none; }
+    .dpad-btn {
+      width: 56px;
+      height: 56px;
+      font-size: 18px;
+    }
+    .dpad-center {
+      width: 56px;
+      height: 56px;
+    }
   }
 </style>
 </head>
@@ -853,6 +865,63 @@ const SFX = {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
+
+// ============ MOBILE CANVAS RESIZE ============
+const BASE_W = canvas.width, BASE_H = canvas.height;
+let W = BASE_W, H = BASE_H;
+
+function isMobile() { return window.innerWidth <= 900; }
+
+function resizeMobileCanvas() {
+  if (isMobile()) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    if (canvas.width !== vw || canvas.height !== vh) {
+      canvas.width = vw;
+      canvas.height = vh;
+      W = vw; H = vh;
+      ctx.imageSmoothingEnabled = false;
+    }
+  } else if (canvas.width !== BASE_W || canvas.height !== BASE_H) {
+    canvas.width = BASE_W; canvas.height = BASE_H;
+    W = BASE_W; H = BASE_H;
+    ctx.imageSmoothingEnabled = false;
+  }
+}
+
+window.addEventListener('resize', resizeMobileCanvas);
+resizeMobileCanvas();
+
+// ============ CAMERA ============
+let cameraX = 0, cameraY = 0;
+const GAMEPAD_OVERLAY_H = 182;
+
+function snapCamera() {
+  if (!level || !isMobile()) return;
+  const ch = activeChar === 0 ? level.leo : level.mia;
+  const mapW = level.map[0].length * TILE;
+  const mapH = level.map.length * TILE;
+  const visH = H - GAMEPAD_OVERLAY_H;
+  let tx = W / 2 - (ch.x + TILE / 2);
+  let ty = visH / 2 - (ch.y + TILE / 2);
+  tx = mapW > W ? Math.max(W - mapW, Math.min(0, tx)) : (W - mapW) / 2;
+  ty = mapH > visH ? Math.max(visH - mapH, Math.min(0, ty)) : (visH - mapH) / 2;
+  cameraX = tx; cameraY = ty;
+}
+
+function updateCamera() {
+  if (!level || !isMobile()) return;
+  const ch = activeChar === 0 ? level.leo : level.mia;
+  const mapW = level.map[0].length * TILE;
+  const mapH = level.map.length * TILE;
+  const visH = H - GAMEPAD_OVERLAY_H;
+  let tx = W / 2 - (ch.x + TILE / 2);
+  let ty = visH / 2 - (ch.y + TILE / 2);
+  tx = mapW > W ? Math.max(W - mapW, Math.min(0, tx)) : (W - mapW) / 2;
+  ty = mapH > visH ? Math.max(visH - mapH, Math.min(0, ty)) : (visH - mapH) / 2;
+  cameraX += (tx - cameraX) * 0.12;
+  cameraY += (ty - cameraY) * 0.12;
+}
 const feedbackNameInput = document.getElementById('feedback-name');
 const feedbackTextInput = document.getElementById('feedback-text');
 const feedbackSubmitBtn = document.getElementById('feedback-submit');
@@ -1024,7 +1093,6 @@ STORY_SCENES.forEach(scene => {
   scene.img = img;
 });
 
-const W = canvas.width, H = canvas.height;
 const TILE = 40;
 const COLS = 27, ROWS = 16;
 
@@ -1738,6 +1806,8 @@ function loadLevel(idx) {
   if (level.entities.boss && data.bossHp) {
     level.entities.boss.hp = data.bossHp;
   }
+
+  snapCamera();
 
   // Mettre à jour le panneau gauche avec les objectifs du niveau
   updateHintsPanel(data, idx);
@@ -2586,6 +2656,9 @@ function drawTile(t, px, py, biome, x, y) {
 }
 
 function levelBoardOffset() {
+  if (isMobile() && level) {
+    return { x: Math.round(cameraX), y: Math.round(cameraY) };
+  }
   const mapWidth = level.map[0].length * TILE;
   const mapHeight = level.map.length * TILE;
   return {
@@ -3741,6 +3814,7 @@ function loop() {
   else if (state === STATE.LEVEL_SELECT) { renderLevelSelect(); updateLevelSelect(); }
   else if (state === STATE.INTRO) { renderIntro(); }
   else if (state === STATE.PLAYING) {
+    updateCamera();
     updateGame();
     renderGame();
     if (consumePress('Escape') || consumePress('Enter')) { state = STATE.PAUSED; pauseIndex = 0; }
