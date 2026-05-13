@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>héros — Léo & Mia – Le Labyrinthe Perdu</title>
 <meta name="application-name" content="héros">
 <style>
@@ -77,6 +78,8 @@
   /* ---- Masquer les volets sur le menu ---- */
   body.menu-mode #hints-panel,
   body.menu-mode #commands-panel { display: none !important; }
+  body.video-mode #hints-panel,
+  body.video-mode #commands-panel { display: none !important; }
   body.menu-mode #game {
     aspect-ratio: unset;
     width: 100vw;
@@ -89,6 +92,63 @@
     justify-content: stretch;
   }
   body.menu-mode #game-msg { display: none; }
+  body.video-mode #game-msg { display: none; }
+  #intro-video-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 8;
+    background:
+      radial-gradient(circle at top, rgba(102, 66, 170, 0.22), transparent 42%),
+      linear-gradient(180deg, rgba(8, 6, 24, 0.95), rgba(8, 6, 24, 0.98));
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  #intro-video-screen.open { display: flex; }
+  #intro-video-panel {
+    width: min(1120px, 94vw);
+    padding: 22px;
+    border: 2px solid rgba(255,255,255,0.18);
+    background: rgba(10, 8, 28, 0.92);
+    border-radius: 16px;
+    box-shadow: 0 0 32px rgba(0,0,0,0.4);
+  }
+  #intro-video-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  #intro-video-header h3 {
+    color: #ffeb70;
+    font-size: 22px;
+  }
+  #intro-video-close {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 10px;
+    background: #6a4caf;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 22px;
+    cursor: pointer;
+  }
+  #intro-video-player {
+    display: block;
+    width: 100%;
+    max-height: calc(100vh - 190px);
+    border-radius: 12px;
+    background: #000;
+  }
+  #intro-video-help {
+    margin-top: 12px;
+    color: #d8ccff;
+    font-size: 13px;
+    text-align: center;
+  }
   #feedback-panel {
     display: none;
     position: fixed;
@@ -339,6 +399,122 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
+
+  /* ========== GAMEPAD MOBILE ========== */
+  #mobile-gamepad {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    height: 182px;
+    background: rgba(10, 5, 30, 0.93);
+    border-top: 2px solid #6a4caf;
+    padding: 8px 16px 10px;
+    flex-direction: column;
+    gap: 7px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.menu-mode #mobile-gamepad { display: none !important; }
+  #mg-toprow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  #mobile-switch-btn {
+    background: rgba(40, 20, 80, 0.95);
+    border: 2px solid #ffeb70;
+    border-radius: 20px;
+    color: #ffeb70;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 5px 14px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  #mobile-pause-btn {
+    background: rgba(60, 40, 100, 0.9);
+    border: 2px solid #6a4caf;
+    border-radius: 8px;
+    color: #c9a8ff;
+    font-size: 18px;
+    padding: 4px 10px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  #mg-mainrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+  }
+  #mg-dpad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .mg-dpad-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .dpad-btn {
+    width: 46px;
+    height: 46px;
+    background: rgba(106, 76, 175, 0.75);
+    border: 2px solid #8a6fcf;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  .dpad-center {
+    width: 46px;
+    height: 46px;
+    background: rgba(15, 8, 30, 0.7);
+    border-radius: 8px;
+  }
+  #mg-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+  }
+  .mg-action-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(106, 76, 175, 0.85);
+    border: 2px solid #c9a8ff;
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  /* ========== LAYOUT MOBILE ========== */
+  @media (max-width: 900px) {
+    body { flex-direction: column !important; }
+    #hints-panel, #commands-panel { display: none !important; }
+    #game-area {
+      height: calc(100dvh - 182px);
+      height: calc(100vh - 182px);
+    }
+    #game {
+      touch-action: none;
+      max-height: calc(100dvh - 230px) !important;
+      max-height: calc(100vh - 230px) !important;
+    }
+    #game-msg { font-size: 12px; height: 36px; }
+  }
 </style>
 </head>
 <body>
@@ -381,6 +557,19 @@
     <div id="comments-list"></div>
   </section>
 
+  <section id="intro-video-screen" aria-label="Introduction vidéo du jeu">
+    <div id="intro-video-panel">
+      <div id="intro-video-header">
+        <h3>Introduction du jeu</h3>
+        <button id="intro-video-close" type="button" aria-label="Fermer">×</button>
+      </div>
+      <video id="intro-video-player" controls playsinline preload="metadata">
+        <source src="INTRO SART SCREEN.mp4" type="video/mp4">
+      </video>
+      <div id="intro-video-help">Espace pour lecture/pause · Échap pour revenir au menu</div>
+    </div>
+  </section>
+
   <aside id="commands-panel">
     <!-- LÉO -->
     <div class="cmd-player">
@@ -401,10 +590,37 @@
       <div class="cmd-row"><span class="key">F</span><span class="action">Magie : révéler / traverser / repousser ✨</span></div>
       <div class="cmd-row"><span class="key">Échap</span><span class="action">Menu / Pause</span></div>
       <div class="cmd-row" style="font-size:14px;color:#ffffff;margin-top:4px;">
-        3 charges de magie, puis récupération.
+        1 charge de magie, puis récupération.
       </div>
     </div>
   </aside>
+
+  <!-- ========== GAMEPAD VIRTUEL MOBILE ========== -->
+  <div id="mobile-gamepad" aria-hidden="true">
+    <div id="mg-toprow">
+      <button id="mobile-switch-btn" type="button">⚔️ Léo → Mia</button>
+      <button id="mobile-pause-btn" type="button">⏸</button>
+    </div>
+    <div id="mg-mainrow">
+      <div id="mg-dpad">
+        <div class="mg-dpad-row">
+          <button class="dpad-btn" id="dpad-up" type="button">▲</button>
+        </div>
+        <div class="mg-dpad-row">
+          <button class="dpad-btn" id="dpad-left" type="button">◄</button>
+          <div class="dpad-center"></div>
+          <button class="dpad-btn" id="dpad-right" type="button">►</button>
+        </div>
+        <div class="mg-dpad-row">
+          <button class="dpad-btn" id="dpad-down" type="button">▼</button>
+        </div>
+      </div>
+      <div id="mg-actions">
+        <button class="mg-action-btn" id="mobile-btn2" type="button">🛡</button>
+        <button class="mg-action-btn" id="mobile-btn1" type="button">⚔️</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 // ============ MUSIC ============
@@ -711,6 +927,9 @@ const feedbackStatus = document.getElementById('feedback-status');
 const commentsViewer = document.getElementById('comments-viewer');
 const commentsList = document.getElementById('comments-list');
 const commentsCloseBtn = document.getElementById('comments-close');
+const introVideoScreen = document.getElementById('intro-video-screen');
+const introVideoPlayer = document.getElementById('intro-video-player');
+const introVideoCloseBtn = document.getElementById('intro-video-close');
 
 function getFeedbackEntries() {
   return JSON.parse(localStorage.getItem('leomia_feedback') || '[]');
@@ -795,6 +1014,22 @@ commentsList.addEventListener('click', e => {
   renderCommentsList();
 });
 
+function openIntroVideo() {
+  state = STATE.VIDEO;
+  introVideoScreen.classList.add('open');
+  introVideoPlayer.currentTime = 0;
+  introVideoPlayer.play().catch(() => {});
+}
+
+function closeIntroVideo() {
+  introVideoPlayer.pause();
+  introVideoPlayer.currentTime = 0;
+  introVideoScreen.classList.remove('open');
+  state = STATE.MENU;
+}
+
+introVideoCloseBtn.addEventListener('click', closeIntroVideo);
+
 function assetUrl(path) {
   return new URL(path, window.location.href).href;
 }
@@ -841,7 +1076,7 @@ const TILE = 40;
 const COLS = 27, ROWS = 16;
 
 // ============ GAME STATE ============
-const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 'select', PLAYING: 'playing', WIN: 'win', GAMEOVER: 'gameover', LEVEL_COMPLETE: 'complete', INTRO: 'intro', PAUSED: 'paused' };
+const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 'select', PLAYING: 'playing', WIN: 'win', GAMEOVER: 'gameover', LEVEL_COMPLETE: 'complete', INTRO: 'intro', VIDEO: 'video', PAUSED: 'paused' };
 let state = STATE.MENU;
 let menuIndex = 0;
 let currentLevel = 0;
@@ -851,8 +1086,8 @@ let activeChar = 0; // 0 = Léo, 1 = Mia
 let message = '';
 let messageTimer = 0;
 let rulesScroll = 0;
-const MIA_MAGIC_MAX = 3;
-const MIA_MAGIC_COOLDOWN = 8 * 60;
+const MIA_MAGIC_MAX = 1;
+const MIA_MAGIC_COOLDOWN = 30 * 60;
 
 // ============ INPUT ============
 const keys = {};
@@ -877,24 +1112,26 @@ const T = {
   TIMER_TILE: 15, BOSS_FLOOR: 16, CHECKPOINT: 17, ORB: 18,
   WEAK_WALL: 19, SYMBOL_A: 20, SYMBOL_B: 21, SYMBOL_C: 22,
   PLATE_A: 23, PLATE_B: 24, PLATE_C: 25, MIA_WALL: 26,
+  PORTAL_IN: 27, PORTAL_OUT: 28,
 };
 
 // ============ LEVELS (15 niveaux) ============
 // Map encoding: . floor, # wall, K key, D door, E exit, C crystal, S switch, G gate, X spike,
 // B block, H hidden wall, 1 dual plate A, 2 dual plate B, t torch pickup, d dark floor,
-// L Léo start, M Mia start, * weak wall, o orb, p checkpoint
+// L Léo start, M Mia start, * weak wall, o orb, p checkpoint, P portal in, Q portal out
 // a/b/c symbol tiles, A/B/C plates for symbol order
 
 const LEVELS = [
   {
     name: "1. Le Verrou des Deux Héros",
-    hint: "Mia révèle l'accès, Léo brise puis ouvre. Même le premier niveau demande déjà de combiner magie, épée et porte.",
+    hint: "Mia révèle l'accès, Léo brise puis ouvre. Le portail permet ensuite à Léo de rejoindre Mia pour finir ensemble.",
     biome: 'forest',
     steps: [
       "Avec Mia, appuie sur F pour montrer le passage caché.",
       "Avec Léo, prends la clé.",
       "Avec Léo, casse le mur fragile si besoin.",
       "Avec Léo, ouvre la porte.",
+      "Avec Léo, traverse le portail pour rejoindre Mia.",
       "Amène Léo et Mia ensemble sur le cristal.",
     ],
     map: [
@@ -911,7 +1148,7 @@ const LEVELS = [
       "#.###.#.#.####.#.#.#",
       "#.#...#.#....#.#.#.#",
       "#.#.###.####.#.#.#.#",
-      "#.#....*...D.#...C.#",
+      "#.#....*...DP#.Q.C.#",
       "#.###############..#",
       "####################",
     ]
@@ -942,7 +1179,7 @@ const LEVELS = [
       "#.#.###.#.##.#.#.###",
       "#.#...#...#..#.#...#",
       "#.###.#####.##.###.#",
-      "#...#..X..D....#C..#",
+      "#...#..X..DP...#Q.C#",
       "#...###########....#",
       "####################",
     ]
@@ -977,7 +1214,7 @@ const LEVELS = [
       "#.###.#.######.#.#.#",
       "#.#...#......#.#...#",
       "#.#.########.#.###.#",
-      "#.#........#...#.C.#",
+      "#.#...P....#...#.QC#",
       "#.########.#####...#",
       "####################",
     ]
@@ -1012,7 +1249,7 @@ const LEVELS = [
       "#.#.#####.#.#.#.##.#",
       "#.#...K...#.#.#..#.#",
       "#.###.#####.##.#.#.#",
-      "#...#....D....#.#C.#",
+      "#...#...DP...#.#QC.#",
       "#...############...#",
       "####################",
     ]
@@ -1047,7 +1284,7 @@ const LEVELS = [
       "#.#.###.####.###.#.#",
       "#.#...#.#K##...#.#.#",
       "#.###.####.#.###.#.#",
-      "#...#...*D...#..C..#",
+      "#...#...*DP..#..QC.#",
       "#...##############.#",
       "####################",
     ]
@@ -1083,7 +1320,7 @@ const LEVELS = [
       "#.#.######.##.#.#.##",
       "#.#....c...K.#.#...#",
       "#.######.###.#.###.#",
-      "#....*..D....#..C..#",
+      "#....*..DP...#..QC.#",
       "#..##############..#",
       "####################",
     ]
@@ -1121,7 +1358,7 @@ const LEVELS = [
       "#.#.##.###.#####.#.#",
       "#.#..#...#.....#.#.#",
       "#.##.###.#####.#.#.#",
-      "#...#..*D....#..#C.#",
+      "#...#..*DP...#..#QC#",
       "#...#############..#",
       "####################",
     ]
@@ -1158,7 +1395,7 @@ const LEVELS = [
       "#.d#####.#.#d#.#.###",
       "#.d....#.#..d#.#...#",
       "#.dddd.#.####d#.##.#",
-      "#....*.D.....d#..C.#",
+      "#....*.DP....d#..QC#",
       "#..#############...#",
       "####################",
     ]
@@ -1197,7 +1434,7 @@ const LEVELS = [
       "#.###.####.#.#.#.###",
       "#.#...#....#.#...#.#",
       "#.#.###.####.###.#.#",
-      "#...*.D........#C..#",
+      "#...*.DP.......#QC.#",
       "#..#############...#",
       "####################",
     ]
@@ -1241,7 +1478,7 @@ const LEVELS = [
       "#.#.######.##.#.#..#",
       "#.#....K...#..#.#..#",
       "#.######.###.##.#..#",
-      "#....*..D......#C..#",
+      "#....*..DP.....#QC.#",
       "#..#############...#",
       "####################",
     ]
@@ -1278,7 +1515,7 @@ const LEVELS = [
       "#.###.#.###.#.#.#.##",
       "#...#.#...#.#.#...##",
       "###.#.###.#.#.###..#",
-      "#...#..*.D...#..C..#",
+      "#...#..*.DP..#..QC.#",
       "#..##############..#",
       "####################",
     ]
@@ -1315,7 +1552,7 @@ const LEVELS = [
       "#.#.####.#.#.###.#.#",
       "#.#...K..#...#...#.#",
       "#.###.######.#.###.#",
-      "#...#..*.D...#..C..#",
+      "#...#..*.DP..#..QC.#",
       "#..##############..#",
       "####################",
     ]
@@ -1353,7 +1590,7 @@ const LEVELS = [
       "#.##.#.#.#K#.#.###.#",
       "#....#...#.#.#...#.#",
       "#.######c#.#.###.#.#",
-      "#....*..D..#...C...#",
+      "#....*..DP.#...QC..#",
       "#..##############..#",
       "####################",
     ]
@@ -1392,7 +1629,7 @@ const LEVELS = [
       "#.#####.###.####.#.#",
       "#.....#...#....#.#.#",
       "#.###.###.####.#.#.#",
-      "#...#..*.D......C..#",
+      "#...#..*.DP....QC..#",
       "#..##############..#",
       "####################",
     ]
@@ -1435,7 +1672,7 @@ const LEVELS = [
       "#.#.######.##.#.#..#",
       "#.#....K...#..#.#..#",
       "#.######.###.##.#..#",
-      "#....*..D......#C..#",
+      "#....*..DP.....#QC.#",
       "#..#############...#",
       "####################",
     ]
@@ -1452,7 +1689,8 @@ function loadLevel(idx) {
   const map = [];
   const entities = { keys: [], crystals: [], switches: [], gates: [], spikes: [],
     blocks: [], hidden: [], dualPlates: [], symbolPlates: [], torches: [], orbs: [],
-    weakWalls: [], doors: [], phaseWalls: [], exit: null, enemies: [], boss: null };
+    weakWalls: [], doors: [], phaseWalls: [], portalIns: [], portalOuts: [], portals: [],
+    exit: null, enemies: [], boss: null };
   let leoStart = {x:1,y:1}, miaStart = {x:1,y:2};
 
   for (let y = 0; y < data.map.length; y++) {
@@ -1480,6 +1718,8 @@ function loadLevel(idx) {
         case 'd': tile = T.DARK_FLOOR; break;
         case 'o': entities.orbs.push({x, y, taken: false}); tile = T.FLOOR; break;
         case '*': entities.weakWalls.push({x, y, broken: false}); tile = T.WEAK_WALL; break;
+        case 'P': entities.portalIns.push({x, y}); tile = T.PORTAL_IN; break;
+        case 'Q': entities.portalOuts.push({x, y}); tile = T.PORTAL_OUT; break;
         case 'a': entities.symbolPlates.push({x, y, id: 'A', active: false}); tile = T.FLOOR; break;
         case 'b': entities.symbolPlates.push({x, y, id: 'B', active: false}); tile = T.FLOOR; break;
         case 'c': entities.symbolPlates.push({x, y, id: 'C', active: false}); tile = T.FLOOR; break;
@@ -1503,12 +1743,17 @@ function loadLevel(idx) {
     });
   }
 
+  entities.portals = entities.portalIns.map((entry, i) => ({
+    in: entry,
+    out: entities.portalOuts[i] || null,
+  })).filter(portal => portal.out);
+
   const decorations = generateDecorations(map, entities, leoStart, miaStart, data.biome, idx);
 
   level = {
     data, map, entities, decorations,
-    leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, startX: leoStart.x * TILE + 4, startY: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0, shieldTimer: 0, shieldCooldown: 0, hitTimer: 0 },
-    mia: { x: miaStart.x * TILE + 4, y: miaStart.y * TILE + 4, startX: miaStart.x * TILE + 4, startY: miaStart.y * TILE + 4, dir: 'down', moving: false, magicTimer: 0, lightTimer: 0, magicCharges: MIA_MAGIC_MAX, magicCooldown: 0, hitTimer: 0 },
+    leo: { x: leoStart.x * TILE + 4, y: leoStart.y * TILE + 4, startX: leoStart.x * TILE + 4, startY: leoStart.y * TILE + 4, dir: 'down', moving: false, attackTimer: 0, hasKey: 0, shieldTimer: 0, shieldCooldown: 0, hitTimer: 0, portalCooldown: 0 },
+    mia: { x: miaStart.x * TILE + 4, y: miaStart.y * TILE + 4, startX: miaStart.x * TILE + 4, startY: miaStart.y * TILE + 4, dir: 'down', moving: false, magicTimer: 0, lightTimer: 0, magicCharges: MIA_MAGIC_MAX, magicCooldown: 0, hitTimer: 0, portalCooldown: 0 },
     symbolOrder: [],
     timer: data.timer || null,
     timeLeft: data.timer || null,
@@ -1529,9 +1774,13 @@ function updateHintsPanel(data, idx) {
   const stepsEl = document.getElementById('hint-steps');
   if (!nameEl || !stepsEl) return;
   nameEl.textContent = data.name;
+  const hasPortal = data.map.some(r => r.includes('P'));
 
   if (Array.isArray(data.steps) && data.steps.length) {
-    stepsEl.innerHTML = data.steps.map((text, i) =>
+    const steps = hasPortal && !data.steps.some(text => /portail/i.test(text))
+      ? [...data.steps.slice(0, -1), "Avec Léo, prends le portail pour rejoindre la zone finale.", data.steps[data.steps.length - 1]]
+      : data.steps;
+    stepsEl.innerHTML = steps.map((text, i) =>
       `<div class="hint-step"><span class="step-num">${i+1}</span><span>${text}</span></div>`
     ).join('');
     return;
@@ -1560,8 +1809,8 @@ function updateHintsPanel(data, idx) {
   if (hasGate)   steps.push({ icon: '🚧', text: 'La grille s\'ouvre quand l\'interrupteur est activé' });
   if (hasSpike)  steps.push({ icon: '⚠️', text: 'Léo : utilise l\'épée (Shift) pour détruire les pics' });
   if (hasHidden) steps.push({ icon: '👀', text: 'Mia : appuie sur F près d\'un mur pour révéler les passages cachés' });
-  if (idx >= 4)  steps.push({ icon: '🪄', text: 'Mia : appuie sur F contre un mur pour l\'enchanter et le traverser seule' });
-  steps.push({ icon: '✨', text: 'Mia a 3 magies, puis elle doit attendre la récupération' });
+  if (idx >= 4)  steps.push({ icon: '🪄', text: 'Mia : appuie sur F contre un mur pour l\'ouvrir définitivement et laisser passer Léo' });
+  steps.push({ icon: '✨', text: 'Mia n’a qu’une magie, puis elle doit attendre la récupération' });
   if (hasWeak)   steps.push({ icon: '🧱', text: 'Léo : brise les murs fissurés en fonçant dedans' });
   if (data.biome === 'dark') steps.push({ icon: '💡', text: 'Dans les profondeurs, Mia peut libérer une grande lumière temporaire avec F' });
   if (hasTorch)  steps.push({ icon: '🔥', text: 'Récupère la torche pour mieux lire les profondeurs' });
@@ -1571,6 +1820,7 @@ function updateHintsPanel(data, idx) {
   if (hasEnemy)  steps.push({ icon: '👹', text: 'Léo protège Mia au contact pendant que Mia repousse les monstres avec sa magie' });
   if (hasBoss)   steps.push({ icon: '👑', text: 'Léo doit vaincre le Gardien avant la récupération du cristal' });
   if (hasTimer)  steps.push({ icon: '⏱️', text: 'Le temps est limité : coordonne les deux héros sans détour' });
+  if (hasPortal) steps.push({ icon: '🌀', text: 'Léo : utilise le portail pour rejoindre rapidement la zone du cristal' });
   steps.push({ icon: '💎', text: 'Les deux héros doivent se retrouver sur le cristal pour finir !' });
 
   stepsEl.innerHTML = steps.map((s, i) =>
@@ -1582,7 +1832,7 @@ function generateDecorations(map, entities, leoStart, miaStart, biome, idx) {
   const occ = new Set();
   const mark = (x,y) => occ.add(x+','+y);
   mark(leoStart.x, leoStart.y); mark(miaStart.x, miaStart.y);
-  ['keys','crystals','switches','gates','spikes','blocks','hidden','dualPlates','symbolPlates','torches','orbs','weakWalls','doors'].forEach(k =>
+  ['keys','crystals','switches','gates','spikes','blocks','hidden','dualPlates','symbolPlates','torches','orbs','weakWalls','doors','portalIns','portalOuts'].forEach(k =>
     entities[k].forEach(e => mark(e.x, e.y))
   );
   if (entities.exit) mark(entities.exit.x, entities.exit.y);
@@ -1682,6 +1932,22 @@ function tryMove(ent, dx, dy, who) {
   ent.moving = (dx !== 0 || dy !== 0);
 }
 
+function handlePortal(ent, who) {
+  if (ent.portalCooldown > 0) {
+    ent.portalCooldown--;
+    return;
+  }
+  const tx = Math.floor((ent.x + TILE / 2) / TILE);
+  const ty = Math.floor((ent.y + TILE / 2) / TILE);
+  const portal = level.entities.portals.find(p => p.in.x === tx && p.in.y === ty);
+  if (!portal) return;
+  ent.x = portal.out.x * TILE + 4;
+  ent.y = portal.out.y * TILE + 4;
+  ent.portalCooldown = 18;
+  showMsg((who === 'leo' ? 'Léo' : 'Mia') + " traverse le portail !");
+  SFX.magic();
+}
+
 // Auto-interact on collision: open door with key, break weak wall (Léo)
 function tryInteractOnCollision(ent, dx, dy, who) {
   const cx = ent.x + TILE/2 + dx * TILE * 0.8;
@@ -1775,7 +2041,7 @@ function spendMiaMagic() {
   level.mia.magicCharges--;
   if (level.mia.magicCharges === 0) {
     level.mia.magicCooldown = MIA_MAGIC_COOLDOWN;
-    showMsg("Mia a utilisé ses 3 magies ! Récupération en cours.");
+    showMsg("Mia a utilisé sa magie ! Récupération en cours.");
   }
   return true;
 }
@@ -1783,15 +2049,9 @@ function spendMiaMagic() {
 function enchantWallForMia(tx, ty) {
   if (!level.map[ty] || typeof level.map[ty][tx] === 'undefined') return false;
   if (level.map[ty][tx] !== T.WALL && level.map[ty][tx] !== T.MIA_WALL) return false;
-  let wall = level.entities.phaseWalls.find(w => w.x === tx && w.y === ty);
-  if (!wall) {
-    wall = { x: tx, y: ty, timer: 8 * 60 };
-    level.entities.phaseWalls.push(wall);
-  } else {
-    wall.timer = 8 * 60;
-  }
-  level.map[ty][tx] = T.MIA_WALL;
-  showMsg("Mia enchante le mur ! Elle seule peut passer.");
+  level.map[ty][tx] = T.FLOOR;
+  level.entities.phaseWalls = level.entities.phaseWalls.filter(w => !(w.x === tx && w.y === ty));
+  showMsg("Mia ouvre le mur définitivement ! Léo peut passer.");
   return true;
 }
 
@@ -1931,6 +2191,7 @@ function updateGame() {
   }
   if (!leoShieldHeld && level.leo.shieldCooldown > 0) level.leo.shieldCooldown--;
   if (level.leo.hitTimer > 0) level.leo.hitTimer--;
+  handlePortal(level.leo, 'leo');
 
   // --- MIA (P2) : ZQSD + F ou Espace (magie / interagir) ---
   let dx2 = 0, dy2 = 0;
@@ -1949,17 +2210,7 @@ function updateGame() {
       showMsg("La magie de Mia est rechargée !");
     }
   }
-
-  level.entities.phaseWalls = level.entities.phaseWalls.filter(w => {
-    const miaTx = Math.floor((level.mia.x + TILE/2) / TILE);
-    const miaTy = Math.floor((level.mia.y + TILE/2) / TILE);
-    if (w.timer > 0) w.timer--;
-    if (w.timer <= 0 && !(miaTx === w.x && miaTy === w.y)) {
-      level.map[w.y][w.x] = T.WALL;
-      return false;
-    }
-    return true;
-  });
+  handlePortal(level.mia, 'mia');
 
   // Timer
   if (level.timeLeft !== null) {
@@ -2333,6 +2584,27 @@ function drawTile(t, px, py, biome, x, y) {
         ctx.fillText('SHIFT→', px + TILE/2, py - 5);
       }
     }
+  } else if (t === T.PORTAL_IN || t === T.PORTAL_OUT) {
+    const pulse = 0.55 + 0.35 * Math.sin(Date.now() / 180 + x * 0.8 + y * 0.6);
+    const outer = t === T.PORTAL_IN ? '#70d8ff' : '#ff9cf0';
+    const inner = t === T.PORTAL_IN ? '#dff9ff' : '#fff0fb';
+    ctx.fillStyle = `rgba(30, 20, 60, ${0.55 + pulse * 0.18})`;
+    ctx.beginPath();
+    ctx.arc(px + TILE/2, py + TILE/2, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${t === T.PORTAL_IN ? '112, 216, 255' : '255, 156, 240'}, ${0.65 + pulse * 0.35})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(px + TILE/2, py + TILE/2, 11 + pulse * 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = inner;
+    ctx.beginPath();
+    ctx.arc(px + TILE/2, py + TILE/2, 4 + pulse * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = outer;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(t === T.PORTAL_IN ? 'GO' : 'OUT', px + TILE/2, py + TILE - 6);
   } else if (t === T.DARK_FLOOR) {
     ctx.fillStyle = '#15152a';
     ctx.fillRect(px, py, TILE, TILE);
@@ -2974,7 +3246,6 @@ function renderGame() {
 }
 
 // ============ MENU ============
-const INTRO_VIDEO_URL = 'https://www.youtube.com/watch?v=Q75B_D2FA7o';
 const MENU_ITEMS = ['Jouer', 'Voir la vidéo du jeu', 'Lire les commentaires', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
 
 function renderMenu() {
@@ -3037,7 +3308,7 @@ function updateMenu() {
   if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = (menuIndex + 1) % MENU_ITEMS.length;
   if (consumePress('Enter') || consumePress('Space')) {
     if (menuIndex === 0) { currentLevel = 0; state = STATE.INTRO; }
-    else if (menuIndex === 1) window.open(INTRO_VIDEO_URL, '_blank', 'noopener,noreferrer');
+    else if (menuIndex === 1) openIntroVideo();
     else if (menuIndex === 2) openCommentsViewer();
     else if (menuIndex === 3) state = STATE.LEVEL_SELECT;
     else if (menuIndex === 4) { state = STATE.RULES; rulesScroll = 0; }
@@ -3253,6 +3524,21 @@ function updateLevelSelect() {
   if (consumePress('Escape')) { state = STATE.MENU; menuIndex = 0; }
 }
 
+function renderVideoScreen() {
+  renderMenu();
+}
+
+function updateVideoScreen() {
+  if (consumePress('Escape')) {
+    closeIntroVideo();
+    return;
+  }
+  if (consumePress('Space') || consumePress('Enter')) {
+    if (introVideoPlayer.paused) introVideoPlayer.play().catch(() => {});
+    else introVideoPlayer.pause();
+  }
+}
+
 // ============ INTRO / TRANSITIONS ============
 let introTimer = 0;
 function renderIntro() {
@@ -3376,10 +3662,14 @@ function updatePause() {
 function loop() {
   document.body.classList.toggle('start-screen-bg', state === STATE.MENU && startScreenReady);
   document.body.classList.toggle('menu-mode', state === STATE.MENU);
+  document.body.classList.toggle('video-mode', state === STATE.VIDEO);
+  introVideoScreen.classList.toggle('open', state === STATE.VIDEO);
 
   // Music routing
   if (state === STATE.MENU || state === STATE.RULES || state === STATE.CREDITS || state === STATE.LEVEL_SELECT) {
     setMusic(musicMenu);
+  } else if (state === STATE.VIDEO) {
+    setMusic(null);
   } else if (state === STATE.PLAYING || state === STATE.INTRO || state === STATE.PAUSED || state === STATE.LEVEL_COMPLETE || state === STATE.GAMEOVER) {
     setMusic(musicGame);
   }
@@ -3388,6 +3678,7 @@ function loop() {
   else if (state === STATE.RULES) { renderRules(); updateRules(); }
   else if (state === STATE.CREDITS) { renderCredits(); }
   else if (state === STATE.LEVEL_SELECT) { renderLevelSelect(); updateLevelSelect(); }
+  else if (state === STATE.VIDEO) { renderVideoScreen(); updateVideoScreen(); }
   else if (state === STATE.INTRO) { renderIntro(); }
   else if (state === STATE.PLAYING) {
     updateGame();
@@ -3401,6 +3692,126 @@ function loop() {
   // Reset menuIndex when entering menu
   requestAnimationFrame(loop);
 }
+
+// ============ MOBILE / TOUCH SUPPORT ============
+(function initMobile() {
+  const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const gamepad = document.getElementById('mobile-gamepad');
+  if (!isTouchDevice || !gamepad) return;
+
+  gamepad.style.display = 'flex';
+
+  let mobileChar = 0; // 0 = Léo, 1 = Mia
+  const switchBtn = document.getElementById('mobile-switch-btn');
+  const btn1      = document.getElementById('mobile-btn1');
+  const btn2      = document.getElementById('mobile-btn2');
+  const pauseBtn  = document.getElementById('mobile-pause-btn');
+
+  function moveKeys() {
+    return mobileChar === 0
+      ? { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }
+      : { up: 'KeyZ',    down: 'KeyS',      left: 'KeyQ',      right: 'KeyD' };
+  }
+
+  function updateGamepadUI() {
+    if (mobileChar === 0) {
+      switchBtn.textContent = '⚔️ Léo → Mia';
+      btn1.textContent = '⚔️';
+      btn2.textContent = '🛡';
+      btn2.style.opacity = '1';
+    } else {
+      switchBtn.textContent = '✨ Mia → Léo';
+      btn1.textContent = '✨';
+      btn2.textContent = '—';
+      btn2.style.opacity = '0.4';
+    }
+  }
+
+  function releaseAllDirs() {
+    ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyZ','KeyS','KeyQ','KeyD'].forEach(k => { keys[k] = false; });
+  }
+
+  function releaseAllActions() {
+    ['Space','KeyF','AltRight'].forEach(k => { keys[k] = false; });
+  }
+
+  // Changer de personnage
+  switchBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    releaseAllDirs();
+    releaseAllActions();
+    mobileChar = 1 - mobileChar;
+    updateGamepadUI();
+  }, { passive: false });
+
+  // D-pad : 4 boutons directionnels
+  const dpadDefs = [
+    ['dpad-up',    () => moveKeys().up],
+    ['dpad-down',  () => moveKeys().down],
+    ['dpad-left',  () => moveKeys().left],
+    ['dpad-right', () => moveKeys().right],
+  ];
+  dpadDefs.forEach(([id, getKey]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const k = getKey();
+      if (!keys[k]) pressed[k] = true;
+      keys[k] = true;
+    }, { passive: false });
+    const release = e => { if (e.preventDefault) e.preventDefault(); keys[getKey()] = false; };
+    el.addEventListener('touchend',    release, { passive: false });
+    el.addEventListener('touchcancel', release, { passive: false });
+  });
+
+  // Bouton 1 : attaque (Léo) / magie (Mia) — pression unique
+  btn1.addEventListener('touchstart', e => {
+    e.preventDefault();
+    pressed[mobileChar === 0 ? 'Space' : 'KeyF'] = true;
+  }, { passive: false });
+
+  // Bouton 2 : bouclier (Léo) — maintien
+  btn2.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (mobileChar === 0) keys['AltRight'] = true;
+  }, { passive: false });
+  const releaseBtn2 = e => { if (e.preventDefault) e.preventDefault(); keys['AltRight'] = false; };
+  btn2.addEventListener('touchend',    releaseBtn2, { passive: false });
+  btn2.addEventListener('touchcancel', releaseBtn2, { passive: false });
+
+  // Bouton pause
+  pauseBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    pressed['Escape'] = true;
+  }, { passive: false });
+
+  // Canvas : navigation tactile dans les menus
+  let _touchStartY = 0, _touchStartX = 0;
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    _touchStartY = e.touches[0].clientY;
+    _touchStartX = e.touches[0].clientX;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (state === STATE.PLAYING || state === STATE.PAUSED) return;
+    const dy = e.changedTouches[0].clientY - _touchStartY;
+    const dx = e.changedTouches[0].clientX - _touchStartX;
+    if (Math.abs(dy) < 30 && Math.abs(dx) < 30) {
+      pressed['Enter'] = true;          // tap = confirmer
+    } else if (Math.abs(dy) > Math.abs(dx)) {
+      if (dy < -30) pressed['ArrowUp']   = true; // swipe haut
+      if (dy >  30) pressed['ArrowDown'] = true; // swipe bas
+    }
+  }, { passive: false });
+
+  // Dans le menu pause, le d-pad navigue aussi
+  canvas.addEventListener('touchstart', () => {}, { passive: true });
+
+  updateGamepadUI();
+})();
 
 loop();
 </script>
