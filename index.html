@@ -962,9 +962,8 @@ function characterHitbox(character, isLeo) {
   if (img && img.complete && img.naturalWidth > 0) {
     const sh = TILE + 16;
     const sw = sh * (img.naturalWidth / img.naturalHeight);
-    const bobOffset = character.moving ? Math.floor(Math.sin(Date.now()/120)*2) : 0;
     const hitboxX = px + TILE/2 - 4 - sw/2;
-    const hitboxY = py + TILE - sh - 2 + bobOffset;
+    const hitboxY = py + TILE - sh - 2;
     return { x: hitboxX, y: hitboxY, w: sw, h: sh };
   }
   return { x: px + 6, y: py + 8, w: 20, h: 28 };
@@ -984,6 +983,7 @@ function focusMiaIfClicked(clientX, clientY) {
 }
 
 canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') return;
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   focusMiaIfClicked(e.clientX, e.clientY);
 });
