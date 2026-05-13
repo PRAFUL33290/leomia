@@ -8,7 +8,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
-    --mobile-gamepad-height: calc(182px + env(safe-area-inset-bottom));
+    --mobile-gamepad-height: calc(240px + env(safe-area-inset-bottom));
   }
   body {
     position: relative;
@@ -916,7 +916,7 @@ resizeMobileCanvas();
 
 // ============ CAMERA ============
 let cameraX = 0, cameraY = 0;
-const GAMEPAD_OVERLAY_H = 182;
+const GAMEPAD_OVERLAY_H = 240;
 
 function snapCamera() {
   if (!level || !isMobile()) return;
@@ -3942,6 +3942,8 @@ function loop() {
     releaseAllDirs();
     releaseAllActions();
     mobileChar = 1 - mobileChar;
+    activeChar = mobileChar;
+    snapCamera();
     updateGamepadUI();
   }, { passive: false });
 
