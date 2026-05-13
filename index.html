@@ -456,6 +456,7 @@
       height: 100vh !important;
       max-height: none !important;
       aspect-ratio: unset !important;
+      image-rendering: auto;
     }
     #game-msg { display: none; }
     .dpad-btn {
@@ -869,6 +870,11 @@ ctx.imageSmoothingEnabled = false;
 // ============ MOBILE CANVAS RESIZE ============
 const BASE_W = canvas.width, BASE_H = canvas.height;
 let W = BASE_W, H = BASE_H;
+// Zoom factor applied on mobile: canvas is rendered at a smaller internal resolution
+// and CSS scales it up, making tiles appear larger on screen.
+// Target: ~7.5 tiles visible across the screen width (canvas width ≈ 300 game units).
+let mobileZoom = 1;
+const MOBILE_TARGET_W = 300; // target canvas width in game units (~7.5 tiles wide)
 
 function isMobile() { return window.innerWidth <= 900; }
 
@@ -876,13 +882,19 @@ function resizeMobileCanvas() {
   if (isMobile()) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    if (canvas.width !== vw || canvas.height !== vh) {
-      canvas.width = vw;
-      canvas.height = vh;
-      W = vw; H = vh;
+    // Compute zoom so the canvas always covers MOBILE_TARGET_W game units wide.
+    // Cap at 2× so tiles never become excessively large on tablets.
+    mobileZoom = Math.min(2, Math.max(1, vw / MOBILE_TARGET_W));
+    const cw = Math.round(vw / mobileZoom);
+    const ch = Math.round(vh / mobileZoom);
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+      W = cw; H = ch;
       ctx.imageSmoothingEnabled = false;
     }
   } else if (canvas.width !== BASE_W || canvas.height !== BASE_H) {
+    mobileZoom = 1;
     canvas.width = BASE_W; canvas.height = BASE_H;
     W = BASE_W; H = BASE_H;
     ctx.imageSmoothingEnabled = false;
@@ -901,7 +913,7 @@ function snapCamera() {
   const ch = activeChar === 0 ? level.leo : level.mia;
   const mapW = level.map[0].length * TILE;
   const mapH = level.map.length * TILE;
-  const visH = H - GAMEPAD_OVERLAY_H;
+  const visH = H - Math.round(GAMEPAD_OVERLAY_H / mobileZoom);
   let tx = W / 2 - (ch.x + TILE / 2);
   let ty = visH / 2 - (ch.y + TILE / 2);
   tx = mapW > W ? Math.max(W - mapW, Math.min(0, tx)) : (W - mapW) / 2;
@@ -914,7 +926,7 @@ function updateCamera() {
   const ch = activeChar === 0 ? level.leo : level.mia;
   const mapW = level.map[0].length * TILE;
   const mapH = level.map.length * TILE;
-  const visH = H - GAMEPAD_OVERLAY_H;
+  const visH = H - Math.round(GAMEPAD_OVERLAY_H / mobileZoom);
   let tx = W / 2 - (ch.x + TILE / 2);
   let ty = visH / 2 - (ch.y + TILE / 2);
   tx = mapW > W ? Math.max(W - mapW, Math.min(0, tx)) : (W - mapW) / 2;
