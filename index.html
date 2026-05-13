@@ -949,33 +949,34 @@ function canvasPointToLevel(clientX, clientY) {
   if (!level) return null;
   const rect = canvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
-  const sx = (clientX - rect.left) * (W / rect.width);
-  const sy = (clientY - rect.top) * (H / rect.height);
+  const scaledX = (clientX - rect.left) * (W / rect.width);
+  const scaledY = (clientY - rect.top) * (H / rect.height);
   const boardOffset = levelBoardOffset();
-  return { x: sx - boardOffset.x, y: sy - boardOffset.y };
+  return { x: scaledX - boardOffset.x, y: scaledY - boardOffset.y };
 }
 
-function characterHitbox(ch, isLeo) {
-  const px = ch.x, py = ch.y;
+function characterHitbox(character, isLeo) {
+  const px = character.x, py = character.y;
   const who = isLeo ? 'leo' : 'mia';
-  const img = SPRITES[who][ch.dir];
+  const img = SPRITES[who][character.dir];
   if (img && img.complete && img.naturalWidth > 0) {
     const sh = TILE + 16;
     const sw = sh * (img.naturalWidth / img.naturalHeight);
-    const bob = ch.moving ? Math.floor(Math.sin(Date.now()/120)*2) : 0;
-    const dx = px + TILE/2 - 4 - sw/2;
-    const dy = py + TILE - sh - 2 + bob;
-    return { x: dx, y: dy, w: sw, h: sh };
+    const bobOffset = character.moving ? Math.floor(Math.sin(Date.now()/120)*2) : 0;
+    const hitboxX = px + TILE/2 - 4 - sw/2;
+    const hitboxY = py + TILE - sh - 2 + bobOffset;
+    return { x: hitboxX, y: hitboxY, w: sw, h: sh };
   }
   return { x: px + 6, y: py + 8, w: 20, h: 28 };
 }
 
 function focusMiaIfClicked(clientX, clientY) {
   if (state !== STATE.PLAYING || !level) return false;
-  const p = canvasPointToLevel(clientX, clientY);
-  if (!p) return false;
-  const b = characterHitbox(level.mia, false);
-  const hit = p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+  const levelPoint = canvasPointToLevel(clientX, clientY);
+  if (!levelPoint) return false;
+  const miaHitbox = characterHitbox(level.mia, false);
+  const hit = levelPoint.x >= miaHitbox.x && levelPoint.x <= miaHitbox.x + miaHitbox.w &&
+    levelPoint.y >= miaHitbox.y && levelPoint.y <= miaHitbox.y + miaHitbox.h;
   if (!hit) return false;
   activeChar = 1;
   snapCamera();
