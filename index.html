@@ -7,6 +7,9 @@
 <meta name="application-name" content="héros">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --mobile-gamepad-height: calc(182px + env(safe-area-inset-bottom));
+  }
   body {
     position: relative;
     background: #1a0f2e;
@@ -349,10 +352,10 @@
     left: 0;
     right: 0;
     z-index: 50;
-    height: 182px;
+    height: var(--mobile-gamepad-height);
     background: rgba(10, 5, 30, 0.93);
     border-top: 2px solid #6a4caf;
-    padding: 8px 16px 10px;
+    padding: 8px 16px calc(10px + env(safe-area-inset-bottom));
     flex-direction: column;
     gap: 7px;
     touch-action: none;
@@ -449,6 +452,10 @@
       height: 100dvh;
       height: 100vh;
     }
+    body.touch-device #game-area {
+      height: calc(100dvh - var(--mobile-gamepad-height));
+      height: calc(100vh - var(--mobile-gamepad-height));
+    }
     #game {
       touch-action: none;
       width: 100vw !important;
@@ -457,6 +464,9 @@
       max-height: none !important;
       aspect-ratio: unset !important;
       image-rendering: auto;
+    }
+    body.touch-device #game {
+      height: 100% !important;
     }
     #game-msg { display: none; }
     .dpad-btn {
@@ -934,6 +944,50 @@ function updateCamera() {
   cameraX += (tx - cameraX) * 0.12;
   cameraY += (ty - cameraY) * 0.12;
 }
+
+function canvasPointToLevel(clientX, clientY) {
+  if (!level) return null;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const scaledX = (clientX - rect.left) * (W / rect.width);
+  const scaledY = (clientY - rect.top) * (H / rect.height);
+  const boardOffset = levelBoardOffset();
+  if (!boardOffset) return null;
+  return { x: scaledX - boardOffset.x, y: scaledY - boardOffset.y };
+}
+
+function characterHitbox(character, isLeo) {
+  const px = character.x, py = character.y;
+  const who = isLeo ? 'leo' : 'mia';
+  const img = SPRITES[who][character.dir];
+  if (img && img.complete && img.naturalWidth > 0) {
+    const sh = TILE + 16;
+    const sw = sh * (img.naturalWidth / img.naturalHeight);
+    const hitboxX = px + TILE/2 - 4 - sw/2;
+    const hitboxY = py + TILE - sh - 2;
+    return { x: hitboxX, y: hitboxY, w: sw, h: sh };
+  }
+  return { x: px + 6, y: py + 8, w: 20, h: 28 };
+}
+
+function focusMiaIfClicked(clientX, clientY) {
+  if (state !== STATE.PLAYING || !level || !level.mia) return false;
+  const levelPoint = canvasPointToLevel(clientX, clientY);
+  if (!levelPoint) return false;
+  const miaHitbox = characterHitbox(level.mia, false);
+  const hit = levelPoint.x >= miaHitbox.x && levelPoint.x <= miaHitbox.x + miaHitbox.w &&
+    levelPoint.y >= miaHitbox.y && levelPoint.y <= miaHitbox.y + miaHitbox.h;
+  if (!hit) return false;
+  activeChar = 1;
+  snapCamera();
+  return true;
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  focusMiaIfClicked(e.clientX, e.clientY);
+});
 const feedbackNameInput = document.getElementById('feedback-name');
 const feedbackTextInput = document.getElementById('feedback-text');
 const feedbackSubmitBtn = document.getElementById('feedback-submit');
@@ -3845,6 +3899,7 @@ function loop() {
   const gamepad = document.getElementById('mobile-gamepad');
   if (!isTouchDevice || !gamepad) return;
 
+  document.body.classList.add('touch-device');
   gamepad.style.display = 'flex';
 
   let mobileChar = 0; // 0 = Léo, 1 = Mia
@@ -3936,8 +3991,13 @@ function loop() {
   let _touchStartY = 0, _touchStartX = 0;
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    _touchStartY = e.touches[0].clientY;
-    _touchStartX = e.touches[0].clientX;
+    const firstTouch = e.touches && e.touches[0];
+    if (!firstTouch) return;
+    if (state === STATE.PLAYING && focusMiaIfClicked(firstTouch.clientX, firstTouch.clientY)) {
+      return;
+    }
+    _touchStartY = firstTouch.clientY;
+    _touchStartX = firstTouch.clientX;
   }, { passive: false });
 
   canvas.addEventListener('touchend', e => {
