@@ -952,6 +952,7 @@ function canvasPointToLevel(clientX, clientY) {
   const scaledX = (clientX - rect.left) * (W / rect.width);
   const scaledY = (clientY - rect.top) * (H / rect.height);
   const boardOffset = levelBoardOffset();
+  if (!boardOffset) return null;
   return { x: scaledX - boardOffset.x, y: scaledY - boardOffset.y };
 }
 
@@ -970,7 +971,7 @@ function characterHitbox(character, isLeo) {
 }
 
 function focusMiaIfClicked(clientX, clientY) {
-  if (state !== STATE.PLAYING || !level) return false;
+  if (state !== STATE.PLAYING || !level || !level.mia) return false;
   const levelPoint = canvasPointToLevel(clientX, clientY);
   if (!levelPoint) return false;
   const miaHitbox = characterHitbox(level.mia, false);
@@ -3990,11 +3991,13 @@ function loop() {
   let _touchStartY = 0, _touchStartX = 0;
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (state === STATE.PLAYING && focusMiaIfClicked(e.touches[0].clientX, e.touches[0].clientY)) {
+    const firstTouch = e.touches && e.touches[0];
+    if (!firstTouch) return;
+    if (state === STATE.PLAYING && focusMiaIfClicked(firstTouch.clientX, firstTouch.clientY)) {
       return;
     }
-    _touchStartY = e.touches[0].clientY;
-    _touchStartX = e.touches[0].clientX;
+    _touchStartY = firstTouch.clientY;
+    _touchStartX = firstTouch.clientX;
   }, { passive: false });
 
   canvas.addEventListener('touchend', e => {
