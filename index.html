@@ -3989,8 +3989,7 @@ function loop() {
   let _touchStartY = 0, _touchStartX = 0;
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (state === STATE.PLAYING) {
-      focusMiaIfClicked(e.touches[0].clientX, e.touches[0].clientY);
+    if (state === STATE.PLAYING && focusMiaIfClicked(e.touches[0].clientX, e.touches[0].clientY)) {
       return;
     }
     _touchStartY = e.touches[0].clientY;
