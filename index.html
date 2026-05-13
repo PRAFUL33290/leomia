@@ -898,7 +898,7 @@ const GAMEPAD_OVERLAY_H = 182;
 
 function snapCamera() {
   if (!level || !isMobile()) return;
-  const ch = level.leo;
+  const ch = activeChar === 0 ? level.leo : level.mia;
   const mapW = level.map[0].length * TILE;
   const mapH = level.map.length * TILE;
   const visH = H - GAMEPAD_OVERLAY_H;
