@@ -78,8 +78,6 @@
   /* ---- Masquer les volets sur le menu ---- */
   body.menu-mode #hints-panel,
   body.menu-mode #commands-panel { display: none !important; }
-  body.video-mode #hints-panel,
-  body.video-mode #commands-panel { display: none !important; }
   body.menu-mode #game {
     aspect-ratio: unset;
     width: 100vw;
@@ -92,63 +90,6 @@
     justify-content: stretch;
   }
   body.menu-mode #game-msg { display: none; }
-  body.video-mode #game-msg { display: none; }
-  #intro-video-screen {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 8;
-    background:
-      radial-gradient(circle at top, rgba(102, 66, 170, 0.22), transparent 42%),
-      linear-gradient(180deg, rgba(8, 6, 24, 0.95), rgba(8, 6, 24, 0.98));
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-  }
-  #intro-video-screen.open { display: flex; }
-  #intro-video-panel {
-    width: min(1120px, 94vw);
-    padding: 22px;
-    border: 2px solid rgba(255,255,255,0.18);
-    background: rgba(10, 8, 28, 0.92);
-    border-radius: 16px;
-    box-shadow: 0 0 32px rgba(0,0,0,0.4);
-  }
-  #intro-video-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 14px;
-  }
-  #intro-video-header h3 {
-    color: #ffeb70;
-    font-size: 22px;
-  }
-  #intro-video-close {
-    width: 38px;
-    height: 38px;
-    border: 0;
-    border-radius: 10px;
-    background: #6a4caf;
-    color: #fff;
-    font-family: 'Courier New', monospace;
-    font-size: 22px;
-    cursor: pointer;
-  }
-  #intro-video-player {
-    display: block;
-    width: 100%;
-    max-height: calc(100vh - 190px);
-    border-radius: 12px;
-    background: #000;
-  }
-  #intro-video-help {
-    margin-top: 12px;
-    color: #d8ccff;
-    font-size: 13px;
-    text-align: center;
-  }
   #feedback-panel {
     display: none;
     position: fixed;
@@ -557,19 +498,6 @@
     <div id="comments-list"></div>
   </section>
 
-  <section id="intro-video-screen" aria-label="Introduction vidéo du jeu">
-    <div id="intro-video-panel">
-      <div id="intro-video-header">
-        <h3>Introduction du jeu</h3>
-        <button id="intro-video-close" type="button" aria-label="Fermer">×</button>
-      </div>
-      <video id="intro-video-player" controls playsinline preload="metadata">
-        <source src="INTRO SART SCREEN.mp4" type="video/mp4">
-      </video>
-      <div id="intro-video-help">Espace pour lecture/pause · Échap pour revenir au menu</div>
-    </div>
-  </section>
-
   <aside id="commands-panel">
     <!-- LÉO -->
     <div class="cmd-player">
@@ -660,8 +588,13 @@ function resumeCurrentTrackFromVisibility() {
 document.addEventListener('visibilitychange', () => {
   if (typeof state === 'undefined') return;
   if (state !== STATE.MENU) return;
-  if (document.hidden) pauseCurrentTrackForVisibility();
-  else resumeCurrentTrackFromVisibility();
+  if (document.hidden) {
+    pauseCurrentTrackForVisibility();
+    syncMenuBgVideo(false);
+  } else {
+    resumeCurrentTrackFromVisibility();
+    syncMenuBgVideo(true);
+  }
 });
 
 // ============ SOUND FX ============
@@ -927,9 +860,6 @@ const feedbackStatus = document.getElementById('feedback-status');
 const commentsViewer = document.getElementById('comments-viewer');
 const commentsList = document.getElementById('comments-list');
 const commentsCloseBtn = document.getElementById('comments-close');
-const introVideoScreen = document.getElementById('intro-video-screen');
-const introVideoPlayer = document.getElementById('intro-video-player');
-const introVideoCloseBtn = document.getElementById('intro-video-close');
 
 function getFeedbackEntries() {
   return JSON.parse(localStorage.getItem('leomia_feedback') || '[]');
@@ -1014,22 +944,6 @@ commentsList.addEventListener('click', e => {
   renderCommentsList();
 });
 
-function openIntroVideo() {
-  state = STATE.VIDEO;
-  introVideoScreen.classList.add('open');
-  introVideoPlayer.currentTime = 0;
-  introVideoPlayer.play().catch(() => {});
-}
-
-function closeIntroVideo() {
-  introVideoPlayer.pause();
-  introVideoPlayer.currentTime = 0;
-  introVideoScreen.classList.remove('open');
-  state = STATE.MENU;
-}
-
-introVideoCloseBtn.addEventListener('click', closeIntroVideo);
-
 function assetUrl(path) {
   return new URL(path, window.location.href).href;
 }
@@ -1065,6 +979,29 @@ START_SCREEN.onload = () => { startScreenReady = true; };
 START_SCREEN.onerror = () => { startScreenReady = false; };
 START_SCREEN.src = assetUrl('START SCREEN.png');
 
+const MENU_BG_VIDEO = document.createElement('video');
+let menuBgVideoReady = false;
+MENU_BG_VIDEO.muted = true;
+MENU_BG_VIDEO.loop = true;
+MENU_BG_VIDEO.autoplay = true;
+MENU_BG_VIDEO.playsInline = true;
+MENU_BG_VIDEO.setAttribute('playsinline', '');
+MENU_BG_VIDEO.setAttribute('muted', '');
+MENU_BG_VIDEO.setAttribute('autoplay', '');
+MENU_BG_VIDEO.preload = 'auto';
+MENU_BG_VIDEO.src = assetUrl('INTRO SART SCREEN.mp4');
+MENU_BG_VIDEO.addEventListener('canplay', () => { menuBgVideoReady = true; });
+MENU_BG_VIDEO.addEventListener('error', () => { menuBgVideoReady = false; });
+
+function syncMenuBgVideo(shouldPlay) {
+  if (!menuBgVideoReady) return;
+  if (shouldPlay) {
+    if (MENU_BG_VIDEO.paused) MENU_BG_VIDEO.play().catch(() => {});
+  } else if (!MENU_BG_VIDEO.paused) {
+    MENU_BG_VIDEO.pause();
+  }
+}
+
 const GAME_LOGO = new Image();
 let gameLogoReady = false;
 GAME_LOGO.onload = () => { gameLogoReady = true; };
@@ -1076,7 +1013,7 @@ const TILE = 40;
 const COLS = 27, ROWS = 16;
 
 // ============ GAME STATE ============
-const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 'select', PLAYING: 'playing', WIN: 'win', GAMEOVER: 'gameover', LEVEL_COMPLETE: 'complete', INTRO: 'intro', VIDEO: 'video', PAUSED: 'paused' };
+const STATE = { MENU: 'menu', RULES: 'rules', CREDITS: 'credits', LEVEL_SELECT: 'select', PLAYING: 'playing', WIN: 'win', GAMEOVER: 'gameover', LEVEL_COMPLETE: 'complete', INTRO: 'intro', PAUSED: 'paused' };
 let state = STATE.MENU;
 let menuIndex = 0;
 let currentLevel = 0;
@@ -3246,11 +3183,19 @@ function renderGame() {
 }
 
 // ============ MENU ============
+const INTRO_VIDEO_URL = 'https://www.youtube.com/watch?v=Q75B_D2FA7o';
 const MENU_ITEMS = ['Jouer', 'Voir la vidéo du jeu', 'Lire les commentaires', 'Sélection niveau', 'Règles du jeu', 'Crédits'];
 
 function renderMenu() {
   ctx.clearRect(0, 0, W, H);
-  if (startScreenReady) {
+  if (menuBgVideoReady && MENU_BG_VIDEO.readyState >= 2) {
+    const iw = MENU_BG_VIDEO.videoWidth || W;
+    const ih = MENU_BG_VIDEO.videoHeight || H;
+    const scale = Math.max(W / iw, H / ih);
+    const dw = iw * scale, dh = ih * scale;
+    const dx = (W - dw) / 2, dy = (H - dh) / 2;
+    ctx.drawImage(MENU_BG_VIDEO, dx, dy, dw, dh);
+  } else if (startScreenReady) {
     // Cover : conserver le ratio de l'image
     const iw = START_SCREEN.naturalWidth  || START_SCREEN.width;
     const ih = START_SCREEN.naturalHeight || START_SCREEN.height;
@@ -3308,7 +3253,7 @@ function updateMenu() {
   if (consumePress('ArrowDown') || consumePress('KeyS')) menuIndex = (menuIndex + 1) % MENU_ITEMS.length;
   if (consumePress('Enter') || consumePress('Space')) {
     if (menuIndex === 0) { currentLevel = 0; state = STATE.INTRO; }
-    else if (menuIndex === 1) openIntroVideo();
+    else if (menuIndex === 1) window.open(INTRO_VIDEO_URL, '_blank', 'noopener,noreferrer');
     else if (menuIndex === 2) openCommentsViewer();
     else if (menuIndex === 3) state = STATE.LEVEL_SELECT;
     else if (menuIndex === 4) { state = STATE.RULES; rulesScroll = 0; }
@@ -3524,21 +3469,6 @@ function updateLevelSelect() {
   if (consumePress('Escape')) { state = STATE.MENU; menuIndex = 0; }
 }
 
-function renderVideoScreen() {
-  renderMenu();
-}
-
-function updateVideoScreen() {
-  if (consumePress('Escape')) {
-    closeIntroVideo();
-    return;
-  }
-  if (consumePress('Space') || consumePress('Enter')) {
-    if (introVideoPlayer.paused) introVideoPlayer.play().catch(() => {});
-    else introVideoPlayer.pause();
-  }
-}
-
 // ============ INTRO / TRANSITIONS ============
 let introTimer = 0;
 function renderIntro() {
@@ -3662,14 +3592,11 @@ function updatePause() {
 function loop() {
   document.body.classList.toggle('start-screen-bg', state === STATE.MENU && startScreenReady);
   document.body.classList.toggle('menu-mode', state === STATE.MENU);
-  document.body.classList.toggle('video-mode', state === STATE.VIDEO);
-  introVideoScreen.classList.toggle('open', state === STATE.VIDEO);
+  syncMenuBgVideo(state === STATE.MENU);
 
   // Music routing
   if (state === STATE.MENU || state === STATE.RULES || state === STATE.CREDITS || state === STATE.LEVEL_SELECT) {
     setMusic(musicMenu);
-  } else if (state === STATE.VIDEO) {
-    setMusic(null);
   } else if (state === STATE.PLAYING || state === STATE.INTRO || state === STATE.PAUSED || state === STATE.LEVEL_COMPLETE || state === STATE.GAMEOVER) {
     setMusic(musicGame);
   }
@@ -3678,7 +3605,6 @@ function loop() {
   else if (state === STATE.RULES) { renderRules(); updateRules(); }
   else if (state === STATE.CREDITS) { renderCredits(); }
   else if (state === STATE.LEVEL_SELECT) { renderLevelSelect(); updateLevelSelect(); }
-  else if (state === STATE.VIDEO) { renderVideoScreen(); updateVideoScreen(); }
   else if (state === STATE.INTRO) { renderIntro(); }
   else if (state === STATE.PLAYING) {
     updateGame();
